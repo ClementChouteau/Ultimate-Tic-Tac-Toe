@@ -72,7 +72,9 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 	}
 	else {
 		// try to find position in transposition table
-		const ExploredPosition* pos = (maxDepth - depth >= TABLE_CUTOFF) ? ttable.get(board.getBoard(), myTurn, movesGenerator[depth]==Move::any) : nullptr;
+		const ExploredPosition* pos = (maxDepth - depth >= TABLE_CUTOFF)
+				? ttable.get(board.getBoard(), myTurn, movesGenerator[depth]==Move::any, movesGenerator[depth].j%9)
+				: nullptr;
 		MoveValued hashMove = {Move::end, -1};
 		if (pos != nullptr) {
 			// saved move heuristic
@@ -194,6 +196,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 	// save position in transposition table
 	if (type != ValueType::UPPER && maxDepth - depth >= TABLE_CUTOFF) {
 		ExploredPosition pos;
+		pos.mov = movesGenerator[depth].j%9;
 		pos.type = type;
 		pos.depthBelow = maxDepth - depth;
 		pos.fullMoves = (movesGenerator[depth] == Move::any);

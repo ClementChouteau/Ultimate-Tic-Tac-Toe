@@ -23,11 +23,12 @@ enum ValueType {
 
 class ExploredPosition {
 public:
-	hash_t hash;
+	hash_t hash:28;
+	unsigned int mov:4;
 	score_t value;
-	uint8_t depthBelow:5;
+	unsigned int depthBelow:5;
 	bool fullMoves:1;
-	uint8_t type:2;
+	unsigned int type:2;
 	union { // 1 octet
 		struct{
 			bool my_turn:1;
@@ -72,18 +73,28 @@ public:
 			pos.type = ValueType::UNKWN;
 	}
 
-	const ExploredPosition* get(const std::array<int, 9>& board, bool my_turn, bool fullMoves) {
-		const auto h1 = pos_hash<0>(board, my_turn, fullMoves);
-		const auto h2 = pos_hash<1>(board, my_turn, fullMoves);
+	const ExploredPosition* get(const std::array<int, 9>& board, bool my_turn, bool fullMoves, unsigned int mov) const {
+		// possibilitées: (1 des 9 moves| any)
+
+		// pour chercher une position:
+		//  si le move donné est any alors OK
+		//  si le move est un move parmis les 9, alors le chercher
+		//   si pas trouvé alors chercher avec move any, vérifier que c'est compatible
+
+		if (fullMoves)
+			mov = 0;
+
+		const auto h1 = pos_hash<0>(board, my_turn, fullMoves, mov);
+		const auto h2 = pos_hash<1>(board, my_turn, fullMoves, mov);
 
 		const auto pos_table1 = ttable[h1%TABLE_SIZE];
-		if (pos_table1.hash == h2 && pos_table1.my_turn == my_turn && pos_table1.fullMoves == fullMoves) {
+		if (pos_table1.hash == h2 && pos_table1.my_turn == my_turn && pos_table1.fullMoves == fullMoves && pos_table1.mov == mov) {
 			hit++;
 			return &ttable[h1%TABLE_SIZE];
 		}
 
 		const auto pos_table2 = ttable[h2%TABLE_SIZE];
-		if (pos_table2.hash == h1 && pos_table2.my_turn == my_turn && pos_table2.fullMoves == fullMoves) {
+		if (pos_table2.hash == h1 && pos_table2.my_turn == my_turn && pos_table2.fullMoves == fullMoves && pos_table2.mov == mov) {
 			hit++;
 			return &ttable[h2%TABLE_SIZE];
 		}
@@ -95,16 +106,22 @@ public:
 	void put(const std::array<int, 9>& board, ExploredPosition& pos) {
 		insertions++;
 
-		const auto h0 = pos_hash<0>(board, pos.my_turn, pos.fullMoves);
-		const auto h1 = pos_hash<1>(board, pos.my_turn, pos.fullMoves);
+		// si le move est move any alors OK
+		// sinon c'est un des 9 moves, on regarde le any, si c'est compatible et de meilleure profondeure, sauvegarder ces caracs
+
+		if (pos.fullMoves)
+			pos.mov = 0;
+
+		const auto h0 = pos_hash<0>(board, pos.my_turn, pos.fullMoves, pos.mov);
+		const auto h1 = pos_hash<1>(board, pos.my_turn, pos.fullMoves, pos.mov);
 
 		const auto pos_table0 = ttable[h0%TABLE_SIZE];
 		const auto pos_table1 = ttable[h1%TABLE_SIZE];
 		const auto addr0 = &ttable[h0%TABLE_SIZE];
 		const auto addr1 = &ttable[h1%TABLE_SIZE];
 
-		const bool equals0 = (pos_table0.hash == h1 && pos_table0.my_turn == pos.my_turn);
-		const bool equals1 = (pos_table1.hash == h0 && pos_table1.my_turn == pos.my_turn);
+		const bool equals0 = (pos_table0.hash == h1 && pos_table0.my_turn == pos.my_turn && pos_table0.fullMoves == pos.fullMoves);
+		const bool equals1 = (pos_table1.hash == h0 && pos_table1.my_turn == pos.my_turn && pos_table1.fullMoves == pos.fullMoves);
 
 		ExploredPosition* where;
 
@@ -173,7 +190,7 @@ public:
 
 private:
 	template<int Hash>
-	inline static hash_t pos_hash(const std::array<int, 9>& board, bool my_turn, bool fullMoves) {
+	inline static hash_t pos_hash(const std::array<int, 9>& board, bool my_turn, bool fullMoves, unsigned int mov) {
 		const auto h0 = zhash<Hash>(board[0], 0);
 		const auto h1 = zhash<Hash>(board[1], 1);
 		const auto h2 = zhash<Hash>(board[2], 2);
@@ -185,18 +202,19 @@ private:
 		const auto h8 = zhash<Hash>(board[8], 8);
 
 		const auto hT = zhash_myturn<Hash>(my_turn);
-		const auto hM = zhash_fullmoves<Hash>(fullMoves);
+		const auto hF = zhash_fullmoves<Hash>(fullMoves);
+		const auto hM = zhash_mov<Hash>(mov); // assuming fullMoves=true => mov=0
 
-		return h0 ^ h1 ^ h2 ^ h3 ^ h4 ^ h5 ^ h6 ^ h7 ^ h8 ^ hT ^ hM;
+		return (h0 ^ h1 ^ h2 ^ h3 ^ h4 ^ h5 ^ h6 ^ h7 ^ h8 ^ hT ^ hF ^ hM) >> 4;
 	}
 
 private:
 	std::array<ExploredPosition, N> ttable;
-	int hit = 0;
-	int miss = 0;
-	int insertions = 0;
-	int collisions = 0;
-	int inUse = 0;
+	mutable int hit = 0;
+	mutable int miss = 0;
+	mutable int insertions = 0;
+	mutable int collisions = 0;
+	mutable int inUse = 0;
 };
 
 #endif // TABLE_H
