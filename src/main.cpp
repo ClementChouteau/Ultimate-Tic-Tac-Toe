@@ -16,7 +16,7 @@
 // Constants and types ////////////////////////////////////////
 
 #define MIN_DEPTH (1)
-#define MAX_DEPTH (20)
+#define MAX_DEPTH (81)
 
 #define BUDGET_TIME (0.450) // ms
 #define FAILSAFE_TIME (0.100) // ms
@@ -288,12 +288,10 @@ int main() {
 
 			clear_history();
 
-			board.print();
-
 			positions = 0;
 			MoveValued best = {Move::end, -1};
 			try {
-				while (maxDepth <= MAX_DEPTH) { // for end of games
+				while (std::abs(best.value) < GLOBAL_VICTORY0_SCORE-MAX_DEPTH) {
 					ttable.resetCounters();
 					int prev_positions = positions;
 					movesGenerator[0] = givenMoveGenerator;
