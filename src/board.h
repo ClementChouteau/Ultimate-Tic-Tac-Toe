@@ -123,6 +123,15 @@ public:
 	}
 
 	inline bool isValidMove(Move lastMove, Move move) const {
+		if (!(!isWonOrFull(move) && get(move) == NONE)) {
+			if (isWonOrFull(move))
+				cerr << "FULL ";
+			if (get(move) != NONE)
+				cerr << "!NONE";
+
+			cerr << endl;
+		}
+
 		return (lastMove == Move::any || (lastMove.y() == move.Y() && lastMove.x() == move.X()))
 				&& !isWonOrFull(move) && get(move) == NONE;
 	}

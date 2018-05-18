@@ -73,7 +73,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 	else {
 		// try to find position in transposition table
 		const ExploredPosition* pos = (maxDepth - depth >= TABLE_CUTOFF)
-				? ttable.get(board.getBoard(), myTurn, movesGenerator[depth]==Move::any, movesGenerator[depth].j%9)
+				? ttable.get(board.getBoard(), myTurn, movesGenerator[depth])
 				: nullptr;
 		MoveValued hashMove = {Move::end, -1};
 		if (pos != nullptr) {
@@ -84,9 +84,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 			// hash move existence confirmed
 			if (board.isValidMove(movesGenerator[depth], hashMove.move)) {
 				// stored result is relevant
-				if ((maxDepth-depth) <= pos->depthBelow
-						/*|| ((pos->type == ValueType::EXACT || pos->type == ValueType::LOWER)
-							&& pos->value == GLOBAL_VICTORY0_SCORE)*/) {
+				if ((maxDepth-depth) <= pos->depthBelow) {
 
 					if (pos->type == ValueType::EXACT)
 						return hashMove;
@@ -109,6 +107,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 				}
 			}
 			else {
+				std::cerr << "GRAVE COLLISION" << std::endl;
 				pos = nullptr;
 			}
 		}
@@ -194,15 +193,15 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 	return_pos:
 
 	// save position in transposition table
-	if (type != ValueType::UPPER && maxDepth - depth >= TABLE_CUTOFF) {
+	if (type != ValueType::UPPER && (maxDepth - depth) >= TABLE_CUTOFF) {
 		ExploredPosition pos;
-		pos.mov = movesGenerator[depth].j%9;
 		pos.type = type;
 		pos.depthBelow = maxDepth - depth;
 		pos.fullMoves = (movesGenerator[depth] == Move::any);
 		pos.best_move = best.move;
 		pos.my_turn = myTurn;
 		pos.value = A;
+
 		ttable.put(board.getBoard(), pos);
 	}
 
@@ -301,6 +300,10 @@ int main() {
 					best = backtracking(board, 0, maxDepth, (myBot == PLAYER_0) ? true : false, -GLOBAL_VICTORY0_SCORE-1, GLOBAL_VICTORY0_SCORE+1);
 					cerr << 'D' << maxDepth << " cost: " << (positions - prev_positions) << ", hit%: " << ttable.hitRate()*100. << ", collisions%: " << ttable.collisionRate()*100. << ", use%: " << ttable.useRate()*100. << endl;
 					maxDepth++;
+
+					const double dt = chrono::duration <double, std::ratio<1>> (chrono::steady_clock::now() - start).count();
+					if (dt >= BUDGET)
+						throw 0;
 				}
 			}
 			catch (int) {

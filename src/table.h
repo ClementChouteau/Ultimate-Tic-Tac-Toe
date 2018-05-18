@@ -23,19 +23,13 @@ enum ValueType {
 
 class ExploredPosition {
 public:
-	hash_t hash:28;
-	unsigned int mov:4;
+	hash_t hash;
 	score_t value;
 	unsigned int depthBelow:5;
 	bool fullMoves:1;
 	unsigned int type:2;
-	union { // 1 octet
-		struct{
-			bool my_turn:1;
-			uint8_t padding:7;
-		} __attribute__((packed));
-		Move best_move;
-	}__attribute__((packed));
+	bool my_turn:1;
+	Move best_move;
 
 	ExploredPosition() { }
 
@@ -43,8 +37,12 @@ public:
 		std::cerr << '{';
 		std::cerr << value << ',';
 		std::cerr << std::bitset<8*sizeof(hash_t)>(hash) << ',';
-		std::cerr << (int) depthBelow << ',';
-		std::cerr << (my_turn ? 1 : 0) << ',';
+		std::cerr << 'D' << (int) depthBelow << ',';
+
+		if (my_turn)
+			std::cerr << "PLAYER_0" << ',';
+		else
+			std::cerr << "PLAYER_1" << ',';
 
 		switch (type) {
 		case ValueType::LOWER:
@@ -57,11 +55,18 @@ public:
 			std::cerr << "UNKWN" << ','; break;
 		}
 
-		std::cerr << (int) best_move.Y() << ',';
-		std::cerr << (int) best_move.X() << ',';
-		std::cerr << (int) best_move.y() << ',';
-		std::cerr << (int) best_move.x();
-		std::cerr << "}";
+		if (fullMoves) {
+			std::cerr << "any";
+		}
+		else {
+			std::cerr << '(';
+			std::cerr << (int) best_move.Y() << ',';
+			std::cerr << (int) best_move.X() << ',';
+			std::cerr << (int) best_move.y() << ',';
+			std::cerr << (int) best_move.x();
+			std::cerr << ')';
+		}
+		std::cerr << '}';
 	}
 }  __attribute__((packed));
 
@@ -73,30 +78,36 @@ public:
 			pos.type = ValueType::UNKWN;
 	}
 
-	const ExploredPosition* get(const std::array<int, 9>& board, bool my_turn, bool fullMoves, unsigned int mov) const {
-		// possibilitées: (1 des 9 moves| any)
+	const ExploredPosition* get(const std::array<int, 9>& board, bool my_turn, const Move& moveGenerator) const {
+		const auto fullMoves = (moveGenerator==Move::any);
+		const auto mov = fullMoves ? 0 : moveGenerator.yx();
 
-		// pour chercher une position:
-		//  si le move donné est any alors OK
-		//  si le move est un move parmis les 9, alors le chercher
-		//   si pas trouvé alors chercher avec move any, vérifier que c'est compatible
+		const auto h0 = pos_hash<0>(board, my_turn, fullMoves, mov);
+		const auto h1 = pos_hash<1>(board, my_turn, fullMoves, mov);
 
-		if (fullMoves)
-			mov = 0;
+		const auto ttable_h0 = ttable[h0%TABLE_SIZE];
+		if (ttable_h0.hash == h1 && ttable_h0.my_turn == my_turn
+				&& ttable_h0.fullMoves == fullMoves
+				&& (fullMoves || ttable_h0.best_move.YX() == mov)) {
+			hit++;
+			return &ttable[h0%TABLE_SIZE];
+		}
 
-		const auto h1 = pos_hash<0>(board, my_turn, fullMoves, mov);
-		const auto h2 = pos_hash<1>(board, my_turn, fullMoves, mov);
-
-		const auto pos_table1 = ttable[h1%TABLE_SIZE];
-		if (pos_table1.hash == h2 && pos_table1.my_turn == my_turn && pos_table1.fullMoves == fullMoves && pos_table1.mov == mov) {
+		const auto ttable_h1 = ttable[h1%TABLE_SIZE];
+		if (ttable_h1.hash == h0 && ttable_h1.my_turn == my_turn
+				&& ttable_h1.fullMoves == fullMoves
+				&& (fullMoves || ttable_h1.best_move.YX() == mov)) {
 			hit++;
 			return &ttable[h1%TABLE_SIZE];
 		}
 
-		const auto pos_table2 = ttable[h2%TABLE_SIZE];
-		if (pos_table2.hash == h1 && pos_table2.my_turn == my_turn && pos_table2.fullMoves == fullMoves && pos_table2.mov == mov) {
-			hit++;
-			return &ttable[h2%TABLE_SIZE];
+		// une position avec un move optimal compatible est optimale
+		if (!fullMoves) {
+			const ExploredPosition* pos = get(board, my_turn, Move::any);
+			if (pos != nullptr && pos->best_move.YX() == mov)
+				return pos;
+			else
+				miss--;
 		}
 
 		miss++;
@@ -106,44 +117,43 @@ public:
 	void put(const std::array<int, 9>& board, ExploredPosition& pos) {
 		insertions++;
 
-		// si le move est move any alors OK
-		// sinon c'est un des 9 moves, on regarde le any, si c'est compatible et de meilleure profondeure, sauvegarder ces caracs
+		const auto mov = pos.fullMoves ? 0 : pos.best_move.YX();
 
-		if (pos.fullMoves)
-			pos.mov = 0;
+		const auto h0 = pos_hash<0>(board, pos.my_turn, pos.fullMoves, mov);
+		const auto h1 = pos_hash<1>(board, pos.my_turn, pos.fullMoves, mov);
 
-		const auto h0 = pos_hash<0>(board, pos.my_turn, pos.fullMoves, pos.mov);
-		const auto h1 = pos_hash<1>(board, pos.my_turn, pos.fullMoves, pos.mov);
-
-		const auto pos_table0 = ttable[h0%TABLE_SIZE];
-		const auto pos_table1 = ttable[h1%TABLE_SIZE];
 		const auto addr0 = &ttable[h0%TABLE_SIZE];
 		const auto addr1 = &ttable[h1%TABLE_SIZE];
 
-		const bool equals0 = (pos_table0.hash == h1 && pos_table0.my_turn == pos.my_turn && pos_table0.fullMoves == pos.fullMoves);
-		const bool equals1 = (pos_table1.hash == h0 && pos_table1.my_turn == pos.my_turn && pos_table1.fullMoves == pos.fullMoves);
+		const auto ttable_h0 = ttable[h0%TABLE_SIZE];
+		const bool equals0 = (ttable_h0.hash == h1 && ttable_h0.my_turn == pos.my_turn
+							  && ttable_h0.fullMoves == pos.fullMoves && (pos.fullMoves || ttable_h0.best_move == pos.best_move));
 
-		ExploredPosition* where;
+		const auto ttable_h1 = ttable[h1%TABLE_SIZE];
+		const bool equals1 = (ttable_h1.hash == h0 && ttable_h1.my_turn == pos.my_turn
+							  && ttable_h1.fullMoves == pos.fullMoves && (pos.fullMoves || ttable_h1.best_move == pos.best_move));
+
+		ExploredPosition* where = addr0;
 
 		// keep best
 		if (equals0) {
-			if (pos_table0.depthBelow > pos.depthBelow)
+			if (ttable_h0.depthBelow > pos.depthBelow)
 				return;
 			else
 				where = addr0;
 		}
 		else if (equals1) {
-			if (pos_table1.depthBelow >= pos.depthBelow)
+			if (ttable_h1.depthBelow >= pos.depthBelow)
 				return;
 			else
 				where = addr1;
 		}
 		// free space
-		else if (pos_table0.type == ValueType::UNKWN) {
+		else if (ttable_h0.type == ValueType::UNKWN) {
 			inUse++;
 			where = addr0;
 		}
-		else if (pos_table1.type == ValueType::UNKWN) {
+		else if (ttable_h1.type == ValueType::UNKWN) {
 			inUse++;
 			where = addr1;
 		}
@@ -151,7 +161,7 @@ public:
 		else {
 			collisions++;
 			// smaller tree
-			where = (pos_table0.depthBelow <= pos_table1.depthBelow) ? addr0 : addr1;
+			where = (ttable_h0.depthBelow <= ttable_h1.depthBelow) ? addr0 : addr1;
 		}
 
 		pos.hash = (where == addr0) ? h1 : h0;
@@ -205,7 +215,7 @@ private:
 		const auto hF = zhash_fullmoves<Hash>(fullMoves);
 		const auto hM = zhash_mov<Hash>(mov); // assuming fullMoves=true => mov=0
 
-		return (h0 ^ h1 ^ h2 ^ h3 ^ h4 ^ h5 ^ h6 ^ h7 ^ h8 ^ hT ^ hF ^ hM) >> 4;
+		return h0 ^ h1 ^ h2 ^ h3 ^ h4 ^ h5 ^ h6 ^ h7 ^ h8 ^ hT ^ hF ^ hM;
 	}
 
 private:

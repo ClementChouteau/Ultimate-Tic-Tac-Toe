@@ -3,7 +3,7 @@
 
 class Move {
 public:
-	uint8_t j;
+	uint8_t j:7;
 
 	const static Move end;
 	const static Move skip;
@@ -34,6 +34,20 @@ public:
 	inline int X() const { return (j%27)/9; }
 	inline int y() const { return (j%9)/3; }
 	inline int x() const { return (j%3); }
+
+	inline int YX() const { return j/9; }
+	inline int yx() const { return j%9; }
+
+	void print() const {
+		if (*this == Move::end)
+			std::cerr << "end" << std::endl;
+		else if (*this == Move::skip)
+			std::cerr << "skip" << std::endl;
+		else if (*this == Move::any)
+			std::cerr << "any" << std::endl;
+		else
+			std::cerr << Y() << " " << X() << " " << y() << " " << x() << std::endl;
+	}
 
 } __attribute__ ((packed));
 

@@ -42,11 +42,10 @@ inline hash_t zhash_fullmoves(bool fullMoves) {
 
 template<int Hash>
 inline hash_t zhash_mov(int mov) {
-	return _mov_hash[Hash*mov];
+	return _mov_hash[2*mov+Hash];
 }
 
-// hash pour chacun des 9 ttt dans lequel on doit jouer
-
+// hash pour chaque composante du jeu
 void compute_hashes() {
 	std::mt19937 rd;
 	std::uniform_int_distribution<hash_t> dist;
