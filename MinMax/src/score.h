@@ -1,5 +1,4 @@
-#ifndef SCORE_H
-#define SCORE_H
+#pragma once
 
 #include <array>
 #include <algorithm>
@@ -54,5 +53,3 @@ void compute_scores() {
 		_compute_score(ttt, PLAYER_1);
 	}
 }
-
-#endif // SCORE_H

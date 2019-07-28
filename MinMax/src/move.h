@@ -1,5 +1,4 @@
-#ifndef MOVE_H
-#define MOVE_H
+#pragma once
 
 class Move {
 public:
@@ -12,10 +11,10 @@ public:
 	Move() { }
 	Move(uint8_t _val) { j = _val; }
 	Move(uint8_t Y, uint8_t X, uint8_t y, uint8_t x) {
-		j = Y*27 + X*9 + y*3 + x; // 0..80
+		j = Y*27 + X*9 + y*3 + x;
 	}
 
-	inline Move operator++ (int) //(int means that is is move++ operator and not ++move)
+	inline Move operator++ (int)
 	{ j++; return *this; }
 
 	inline Move operator-- (int)
@@ -59,5 +58,3 @@ typedef struct MoveValued {
 	Move move;
 	score_t value;
 } MoveValued;
-
-#endif // MOVE_H

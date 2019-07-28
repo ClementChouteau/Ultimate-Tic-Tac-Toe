@@ -1,9 +1,9 @@
-#ifndef BOARD_H
-#define BOARD_H
+#pragma once
 
 #include <iostream>
 #include <vector>
 #include <array>
+#include <bitset>
 #include <stack>
 #include <tuple>
 
@@ -25,18 +25,23 @@
 
 using namespace std;
 
-typedef struct Action {
-	Move move;
+struct State {
+	std::array<int, 9> board;
 	int macro_board;
 	char winner;
 	int nones_sum;
-} Action;
+};
 
 class Board {
 public:
-	Board() { }
+	Board() {
+		state.board = {EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT};
+		state.macro_board = EMPTY_TTT;
+		state.winner = NONE;
+		state.nones_sum = 9*9;
+	 }
 
-	Board(const string& in) {
+	Board(const string& in) : Board() {
 		int cpt = 0;
 
 		for (int Y = 0; Y < 3; Y++)
@@ -46,7 +51,7 @@ public:
 			if (in[cpt] == ',') cpt++;
 			set_ttt_int(get_ttt(Y, X), y, x, from_char(in[cpt++]));
 			if (get_ttt_int(get_ttt(Y, X), y, x) != NONE) {
-				nones_sum--;
+				state.nones_sum--;
 			}
 		}
 
@@ -55,44 +60,44 @@ public:
 			const auto ttt = get_ttt(Y, X);
 
 			if (score(ttt, PLAYER_0) == VICTORY_POINTS || score(ttt, PLAYER_1) == VICTORY_POINTS) {
-				nones_sum -= nones(ttt);
+				state.nones_sum -= nones(ttt);
 			}
 		}
 
-		macro_board = macroBoardFromBoard();
+		state.macro_board = macroBoardFromBoard();
 
-		if (score(macro_board, PLAYER_0) == VICTORY_POINTS)
-			winner = PLAYER_0;
-		if (score(macro_board, PLAYER_1) == VICTORY_POINTS)
-			winner = PLAYER_1;
+		if (score(state.macro_board, PLAYER_0) == VICTORY_POINTS)
+			state.winner = PLAYER_0;
+		if (score(state.macro_board, PLAYER_1) == VICTORY_POINTS)
+			state.winner = PLAYER_1;
 	}
 
 	inline int get(const Move& move) const {
-		return get_ttt_int(AT_9m(board, move), move.j%9);
+		return get_ttt_int(AT_9m(state.board, move), move.j%9);
 	}
 
 	inline int get(uint8_t index, uint8_t j) const {
-		return get_ttt_int(board[index], j);
+		return get_ttt_int(state.board[index], j);
 	}
 
 	inline int& get_ttt(int Y, int X) {
-		return AT_9(board, Y, X);
+		return AT_9(state.board, Y, X);
 	}
 
 	inline const int& get_ttt(int Y, int X) const {
-		return AT_9(board, Y, X);
+		return AT_9(state.board, Y, X);
 	}
 
 	inline bool isWonOrFull_d(uint8_t m) const {
-		return (score(board[m], PLAYER_0) == VICTORY_POINTS
-				|| score(board[m], PLAYER_1) == VICTORY_POINTS
-				|| nones(board[m]) == 0);
+		return (score(state.board[m], PLAYER_0) == VICTORY_POINTS
+				|| score(state.board[m], PLAYER_1) == VICTORY_POINTS
+				|| nones(state.board[m]) == 0);
 	}
 
 	inline bool isWonOrFull(Move m) const {
-		return (score(AT_9m(board, m), PLAYER_0) == VICTORY_POINTS
-				|| score(AT_9m(board, m), PLAYER_1) == VICTORY_POINTS
-				|| nones(AT_9m(board, m)) == 0);
+		return (score(AT_9m(state.board, m), PLAYER_0) == VICTORY_POINTS
+				|| score(AT_9m(state.board, m), PLAYER_1) == VICTORY_POINTS
+				|| nones(AT_9m(state.board, m)) == 0);
 	}
 
 	inline void possibleMoves(array<MoveValued, 9*9+1>& moves, const Move& moveGenerator) const {
@@ -138,59 +143,48 @@ public:
 
 	// name of winner in case of victory or draw
 	inline int winnerOrDraw() const {
-		return (winner != NONE) ? (winner) : ((nones_sum == 0) ? DRAW : NONE);
+		return (state.winner != NONE) ? (state.winner) : ((state.nones_sum == 0) ? DRAW : NONE);
 	}
 
 	void action(const Move& move, bool myTurn) {
 		// save informations
-		actions[actions_size].move = move;
-		actions[actions_size].macro_board = macro_board;
-		actions[actions_size].winner = winner;
-		actions[actions_size].nones_sum = nones_sum;
-
-		actions_size++;
+		actions[actions_size++] = state;
 
 		// actions here
-		set_ttt_int(AT_9m(board, move), move.j%9, CURRENT(myTurn));
+		set_ttt_int(AT_9m(state.board, move), move.j%9, CURRENT(myTurn));
 
-		const auto ttt = AT_9m(board, move);
+		const auto ttt = AT_9m(state.board, move);
 
-		nones_sum--;
+		state.nones_sum--;
 
 		// more actions if macro update
 		if (score(ttt, PLAYER_0) == VICTORY_POINTS || score(ttt, PLAYER_1) == VICTORY_POINTS || nones(ttt) == 0) {
-			nones_sum -= nones(ttt);
+			state.nones_sum -= nones(ttt);
 
 			if (score(ttt, PLAYER_0) == VICTORY_POINTS)
-				set_ttt_int(macro_board, move.j/9, PLAYER_0);
+				set_ttt_int(state.macro_board, move.j/9, PLAYER_0);
 			else if (score(ttt, PLAYER_1) == VICTORY_POINTS)
-				set_ttt_int(macro_board, move.j/9, PLAYER_1);
+				set_ttt_int(state.macro_board, move.j/9, PLAYER_1);
 			else if (nones(ttt) == 0)
-				set_ttt_int(macro_board, move.j/9, DRAW);
+				set_ttt_int(state.macro_board, move.j/9, DRAW);
 
-			if (score(macro_board, PLAYER_0) == VICTORY_POINTS)
-				winner = PLAYER_0;
-			else if (score(macro_board, PLAYER_1) == VICTORY_POINTS)
-				winner = PLAYER_1;
-			else if (nones_sum == 0)
-				winner = DRAW;
+			if (score(state.macro_board, PLAYER_0) == VICTORY_POINTS)
+				state.winner = PLAYER_0;
+			else if (score(state.macro_board, PLAYER_1) == VICTORY_POINTS)
+				state.winner = PLAYER_1;
+			else if (state.nones_sum == 0)
+				state.winner = DRAW;
 		}
 	}
 
 	void cancel() {
-		const Action& act = actions[--actions_size];
-
-		set_ttt_int(AT_9m(board, act.move), act.move.j%9, NONE);
-
-		macro_board = act.macro_board;
-		winner = act.winner;
-		nones_sum = act.nones_sum;
+		state = actions[--actions_size];
 	}
 
 	inline score_t boardScore() const {
-		if (winner == PLAYER_0) return GLOBAL_VICTORY0_SCORE - actions_size;
-		if (winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE) + actions_size;
-		if (winner == DRAW) return 0; // draw
+		if (state.winner == PLAYER_0) return GLOBAL_VICTORY0_SCORE - actions_size;
+		if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE) + actions_size;
+		if (state.winner == DRAW) return 0; // draw
 
 		return _score(PLAYER_0) - _score(PLAYER_1);
 	}
@@ -204,19 +198,19 @@ public:
 				cerr << endl;
 			}
 		}
-		print_ttt(macro_board);
-		switch (winner) {
+		print_ttt(state.macro_board);
+		switch (state.winner) {
 		case NONE: cerr << "NONE" << endl; break;
 		case PLAYER_0: cerr << "PLAYER_0" << endl; break;
 		case PLAYER_1: cerr << "PLAYER_1" << endl; break;
 		case DRAW: cerr << "DRAW" << endl; break;
 		}
-		cerr << "#nones: " << nones_sum << endl;
+		cerr << "#nones: " << state.nones_sum << endl;
 		cerr << "#actions: " << actions_size << endl;
 	}
 
 	const std::array<int, 9>& getBoard() const {
-		return board;
+		return state.board;
 	}
 
 private:
@@ -225,9 +219,9 @@ private:
 		long s = 0;
 
 		for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-			const long s0 = score(board[std::get<0>(line)], player);
-			const long s1 = score(board[std::get<1>(line)], player);
-			const long s2 = score(board[std::get<2>(line)], player);
+			const long s0 = score(state.board[std::get<0>(line)], player);
+			const long s1 = score(state.board[std::get<1>(line)], player);
+			const long s2 = score(state.board[std::get<2>(line)], player);
 
 			s += std::min(s0, std::min(s1, s2))*(s0+s1+s2);
 		}
@@ -242,7 +236,7 @@ private:
 
 		for (int i = 0; i < 9; i++)
 		{
-			const auto ttt = board[i];
+			const auto ttt = state.board[i];
 
 			if (score(ttt, PLAYER_0) == VICTORY_POINTS)
 				set_ttt_int(macro_board, i, PLAYER_0);
@@ -258,14 +252,8 @@ private:
 	}
 
 private:
-	std::array<int, 9> board = {EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT};
-	int macro_board = EMPTY_TTT;
-
-	int winner = NONE;
-	int nones_sum = 9*9;
+	State state;
 
 	int actions_size = 0;
-	std::array<Action, 128> actions; // 10% gain with fixed size stack
+	std::array<State, 9*9> actions;
 };
-
-#endif // BOARD_H

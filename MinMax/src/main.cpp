@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip> 
 #include <sstream>
 #include <vector>
 #include <string>
@@ -11,7 +12,7 @@
 #include <cassert>
 
 #include "board.h"
-#include "table.h"
+#include "transposition_table.h"
 
 // Constants and types ////////////////////////////////////////
 
@@ -23,6 +24,7 @@
 #define SAFE_TIME (2*(BUDGET_TIME)) // ms
 
 #define TABLE_CUTOFF (2)
+#define TABLE_SIZE (1 << 24)
 
 using namespace std;
 
@@ -46,7 +48,7 @@ array<array<MoveValued, 9*9+1>, MAX_DEPTH+1> moves;
 double BUDGET;
 int positions;
 
-TTable<TABLE_SIZE> ttable;
+TranspositionTable<TABLE_SIZE> ttable;
 
 auto start = chrono::steady_clock::now();
 
@@ -64,7 +66,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 			throw 0;
 	}
 
-	ValueType type = ValueType::UPPER;
+	ExploredPositionType type = ExploredPositionType::UPPER;
 	MoveValued best = {Move::end, -GLOBAL_VICTORY0_SCORE-1};
 	if (board.winnerOrDraw() != NONE || depth == maxDepth) {
 		best.value = (myTurn ? 1 : -1) * board.boardScore();
@@ -78,7 +80,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 		MoveValued hashMove = {Move::end, -1};
 		if (pos != nullptr) {
 			// saved move heuristic
-			hashMove.move = pos->best_move;
+			hashMove.move = pos->bestMove;
 			hashMove.value = pos->value;
 
 			// hash move existence confirmed
@@ -86,18 +88,18 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 				// stored result is relevant
 				if ((maxDepth-depth) <= pos->depthBelow) {
 
-					if (pos->type == ValueType::EXACT)
+					if (pos->type == ExploredPositionType::EXACT)
 						return hashMove;
 
-					else if (pos->type == ValueType::LOWER) {
+					else if (pos->type == ExploredPositionType::LOWER) {
 						if (hashMove.value > best.value) {
 							best = hashMove;
 
 							if (best.value > A) {
-								type = ValueType::EXACT;
+								type = ExploredPositionType::EXACT;
 								A = best.value;
 								if (A >= B) { // alpha beta pruning
-									type = ValueType::LOWER;
+									type = ExploredPositionType::LOWER;
 									historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][myTurn ? 1 : 0] += (double) (1 << 2*(maxDepth-depth));
 									goto return_pos;
 								}
@@ -125,7 +127,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 			if (pos != nullptr && mv.move == hashMove.move) {
 				found = true;
 				// stored result is relevant
-				if ((maxDepth-depth) <= pos->depthBelow && pos->type != ValueType::UPPER) {
+				if ((maxDepth-depth) <= pos->depthBelow && pos->type != ExploredPositionType::UPPER) {
 					mv.move = Move::skip;
 				}
 				// irrelevant, but first to check
@@ -178,11 +180,11 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 				best.move = mv.move;
 
 				if (best.value > A) {
-					type = ValueType::EXACT;
+					type = ExploredPositionType::EXACT;
 					A = best.value;
 
 					if (A >= B) { // alpha beta pruning
-						type = ValueType::LOWER;
+						type = ExploredPositionType::LOWER;
 						historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][myTurn ? 1 : 0] += (double) (1 << 2*(maxDepth-depth));
 						break;
 					}
@@ -193,13 +195,13 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 	return_pos:
 
 	// save position in transposition table
-	if (type != ValueType::UPPER && (maxDepth - depth) >= TABLE_CUTOFF) {
+	if (type != ExploredPositionType::UPPER && (maxDepth - depth) >= TABLE_CUTOFF) {
 		ExploredPosition pos;
 		pos.type = type;
 		pos.depthBelow = maxDepth - depth;
 		pos.fullMoves = (movesGenerator[depth] == Move::any);
-		pos.best_move = best.move;
-		pos.my_turn = myTurn;
+		pos.bestMove = best.move.j;
+		pos.myTurn = myTurn;
 		pos.value = A;
 
 		ttable.put(board.getBoard(), pos);
@@ -210,7 +212,6 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 
 int main() {
 	compute_scores();
-	compute_hashes();
 
 	std::ios::sync_with_stdio(false);
 
@@ -294,11 +295,19 @@ int main() {
 			MoveValued best = {Move::end, -1};
 			try {
 				while (std::abs(best.value) < GLOBAL_VICTORY0_SCORE-MAX_DEPTH) {
-					ttable.resetCounters();
 					int prev_positions = positions;
 					movesGenerator[0] = givenMoveGenerator;
 					best = backtracking(board, 0, maxDepth, (myBot == PLAYER_0) ? true : false, -GLOBAL_VICTORY0_SCORE-1, GLOBAL_VICTORY0_SCORE+1);
-					cerr << 'D' << maxDepth << " cost: " << (positions - prev_positions) << ", hit%: " << ttable.hitRate()*100. << ", collisions%: " << ttable.collisionRate()*100. << ", use%: " << ttable.useRate()*100. << endl;
+					auto hitRatio = (ttable.counters.get != 0 ? ((double)ttable.counters.hit/ttable.counters.get) : 1)*100.;
+					auto missRatio = (ttable.counters.get != 0 ? ((double)ttable.counters.miss/ttable.counters.get) : 1)*100.;
+					auto collisionsRatio = (ttable.counters.get != 0 ? ((double)ttable.counters.collisions/ttable.counters.get) : 0)*100.;
+					auto usageRatio = (ttable.counters.capacity != 0 ? ((double)ttable.counters.count/ttable.counters.capacity) : 1)*100.;
+					std::cerr << std::setprecision(3)
+						<< 'D' << maxDepth << " cost: " << (positions - prev_positions)
+						<< ", hit%: " << hitRatio
+						<< ", miss%: " << missRatio
+						<< ", collisions%: " << collisionsRatio
+						<< ", use%: " << usageRatio << endl;
 					maxDepth++;
 
 					const double dt = chrono::duration <double, std::ratio<1>> (chrono::steady_clock::now() - start).count();

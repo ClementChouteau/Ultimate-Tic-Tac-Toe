@@ -1,5 +1,4 @@
-#ifndef TTT_H
-#define TTT_H
+#pragma once
 
 #include <iostream>
 #include <vector>
@@ -201,5 +200,3 @@ int number_of_blockages(int ttt, int player) {
 
 	return blockages;
 }
-
-#endif // TTT_H
