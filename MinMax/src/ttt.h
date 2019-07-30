@@ -86,25 +86,27 @@ inline int nones(int ttt) {
 	return 9-__builtin_popcount(((ttt & 0x55555555) << 1) | (ttt & 0xAAAAAAAA));
 }
 
-int full_ttt(int c) {
-	int ttt = 0;
-	for (int i = 0; i<9; i++)
-		set_ttt_int(ttt, i, c);
-
-	return ttt;
-}
-
-bool win(int ttt, int player) {
-	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-		const auto c0 = get_ttt_int(ttt, std::get<0>(line));
-		const auto c1 = get_ttt_int(ttt, std::get<1>(line));
-		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
-
-		if (c0 == player && c1 == player && c2 == player)
-			return true;
+inline bool win(int ttt, int player) {
+	if (player == PLAYER_1) {
+		ttt >>= 1;
 	}
+	// remove DRAW
+	ttt = (ttt & (~(ttt << 1) & 0b101010101010101010))
+	    | (ttt & (~(ttt >> 1) & 0b010101010101010101));
 
-	return false;
+	return
+		// diagonals
+		__builtin_popcount(ttt & 0b010000000100000001) == 3 ||
+		__builtin_popcount(ttt & 0b000001000100010000) == 3 ||
+		// lines
+		__builtin_popcount(ttt & 0b010101000000000000) == 3 ||
+		__builtin_popcount(ttt & 0b000000010101000000) == 3 ||
+		__builtin_popcount(ttt & 0b000000000000010101) == 3 ||
+		// columns
+		__builtin_popcount(ttt & 0b010000010000010000) == 3 ||
+		__builtin_popcount(ttt & 0b000100000100000100) == 3 ||
+		__builtin_popcount(ttt & 0b000001000001000001) == 3
+	;
 }
 
 bool winnable(int ttt, int player) {

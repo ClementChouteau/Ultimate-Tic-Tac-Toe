@@ -3,7 +3,6 @@
 #include <iostream>
 #include <vector>
 #include <array>
-#include <bitset>
 #include <stack>
 #include <tuple>
 
@@ -28,8 +27,8 @@ using namespace std;
 struct State {
 	std::array<int, 9> board;
 	int macro_board;
-	char winner;
 	int nones_sum;
+	char winner;
 };
 
 class Board {
@@ -89,15 +88,11 @@ public:
 	}
 
 	inline bool isWonOrFull_d(uint8_t m) const {
-		return (score(state.board[m], PLAYER_0) == VICTORY_POINTS
-				|| score(state.board[m], PLAYER_1) == VICTORY_POINTS
-				|| nones(state.board[m]) == 0);
+		return win(state.board[m], PLAYER_0) || win(state.board[m], PLAYER_1) || nones(state.board[m]) == 0;
 	}
 
 	inline bool isWonOrFull(Move m) const {
-		return (score(AT_9m(state.board, m), PLAYER_0) == VICTORY_POINTS
-				|| score(AT_9m(state.board, m), PLAYER_1) == VICTORY_POINTS
-				|| nones(AT_9m(state.board, m)) == 0);
+		return win(AT_9m(state.board, m), PLAYER_0) || win(AT_9m(state.board, m), PLAYER_1) || nones(AT_9m(state.board, m)) == 0;
 	}
 
 	inline void possibleMoves(array<MoveValued, 9*9+1>& moves, const Move& moveGenerator) const {
@@ -128,22 +123,17 @@ public:
 	}
 
 	inline bool isValidMove(Move lastMove, Move move) const {
-		if (!(!isWonOrFull(move) && get(move) == NONE)) {
-			if (isWonOrFull(move))
-				cerr << "FULL ";
-			if (get(move) != NONE)
-				cerr << "!NONE";
-
-			cerr << endl;
-		}
-
 		return (lastMove == Move::any || (lastMove.y() == move.Y() && lastMove.x() == move.X()))
 				&& !isWonOrFull(move) && get(move) == NONE;
 	}
 
 	// name of winner in case of victory or draw
 	inline int winnerOrDraw() const {
-		return (state.winner != NONE) ? (state.winner) : ((state.nones_sum == 0) ? DRAW : NONE);
+		if (state.winner != NONE)
+			return state.winner;
+		if (state.nones_sum == 0)
+			return DRAW;
+		return NONE;
 	}
 
 	void action(const Move& move, bool myTurn) {
@@ -157,24 +147,28 @@ public:
 
 		state.nones_sum--;
 
-		// more actions if macro update
-		if (score(ttt, PLAYER_0) == VICTORY_POINTS || score(ttt, PLAYER_1) == VICTORY_POINTS || nones(ttt) == 0) {
-			state.nones_sum -= nones(ttt);
-
-			if (score(ttt, PLAYER_0) == VICTORY_POINTS)
-				set_ttt_int(state.macro_board, move.j/9, PLAYER_0);
-			else if (score(ttt, PLAYER_1) == VICTORY_POINTS)
-				set_ttt_int(state.macro_board, move.j/9, PLAYER_1);
-			else if (nones(ttt) == 0)
-				set_ttt_int(state.macro_board, move.j/9, DRAW);
-
-			if (score(state.macro_board, PLAYER_0) == VICTORY_POINTS)
-				state.winner = PLAYER_0;
-			else if (score(state.macro_board, PLAYER_1) == VICTORY_POINTS)
-				state.winner = PLAYER_1;
-			else if (state.nones_sum == 0)
-				state.winner = DRAW;
+		if (nones(ttt) == 0) {
+			set_ttt_int(state.macro_board, move.j/9, DRAW);
 		}
+		else if (win(ttt, PLAYER_0)) {
+			set_ttt_int(state.macro_board, move.j/9, PLAYER_0);
+		}
+		else if (win(ttt, PLAYER_1)) {
+			set_ttt_int(state.macro_board, move.j/9, PLAYER_1);
+		}
+		else {
+			return; // no macro update needed
+		}
+
+		// macro board update
+		state.nones_sum -= nones(ttt); // remove nones in completed ttt
+
+		if (win(state.macro_board, PLAYER_0))
+			state.winner = PLAYER_0;
+		else if (win(state.macro_board, PLAYER_1))
+			state.winner = PLAYER_1;
+		else if (state.nones_sum == 0)
+			state.winner = DRAW;
 	}
 
 	void cancel() {
@@ -182,8 +176,8 @@ public:
 	}
 
 	inline score_t boardScore() const {
-		if (state.winner == PLAYER_0) return GLOBAL_VICTORY0_SCORE - actions_size;
-		if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE) + actions_size;
+		if (state.winner == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - actions_size);
+		if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - actions_size);
 		if (state.winner == DRAW) return 0; // draw
 
 		return _score(PLAYER_0) - _score(PLAYER_1);
