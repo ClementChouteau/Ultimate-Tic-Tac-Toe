@@ -75,15 +75,6 @@ public:
 			}
 		}
 
-		// found a position with a "compatible" move
-		if (!fullMoves) {
-			const ExploredPosition* pos = get(board, myTurn, Move::any);
-			if (pos != nullptr && Move(pos->bestMove).YX() == mov) {
-				counters.hit++;
-				return pos;
-			}
-		}
-
 		counters.miss++;
 		return nullptr;
 	}

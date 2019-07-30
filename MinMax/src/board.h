@@ -22,8 +22,6 @@
 // GLOBAL_VICTORY0_SCORE+1 and -GLOBAL_VICTORY0_SCORE-1 must be valid numbers !!!
 #define GLOBAL_VICTORY0_SCORE (std::numeric_limits<score_t>::max()-2)
 
-using namespace std;
-
 struct State {
 	std::array<int, 9> board;
 	int macro_board;
@@ -40,7 +38,7 @@ public:
 		state.nones_sum = 9*9;
 	 }
 
-	Board(const string& in) : Board() {
+	Board(const std::string& in) : Board() {
 		int cpt = 0;
 
 		for (int Y = 0; Y < 3; Y++)
@@ -58,16 +56,16 @@ public:
 		for (int X = 0; X < 3; X++) {
 			const auto ttt = get_ttt(Y, X);
 
-			if (score(ttt, PLAYER_0) == VICTORY_POINTS || score(ttt, PLAYER_1) == VICTORY_POINTS) {
+			if (win(ttt, PLAYER_0) || win(ttt, PLAYER_1)) {
 				state.nones_sum -= nones(ttt);
 			}
 		}
 
 		state.macro_board = macroBoardFromBoard();
 
-		if (score(state.macro_board, PLAYER_0) == VICTORY_POINTS)
+		if (win(state.macro_board, PLAYER_0))
 			state.winner = PLAYER_0;
-		if (score(state.macro_board, PLAYER_1) == VICTORY_POINTS)
+		if (win(state.macro_board, PLAYER_1))
 			state.winner = PLAYER_1;
 	}
 
@@ -95,10 +93,7 @@ public:
 		return win(AT_9m(state.board, m), PLAYER_0) || win(AT_9m(state.board, m), PLAYER_1) || nones(AT_9m(state.board, m)) == 0;
 	}
 
-	inline void possibleMoves(array<MoveValued, 9*9+1>& moves, const Move& moveGenerator) const {
-		assert(moveGenerator != Move::end);
-		assert(moveGenerator != Move::skip);
-
+	inline void possibleMoves(std::array<MoveValued, 9*9+1>& moves, const Move& moveGenerator) const {
 		int cnt = 0;
 		if (moveGenerator != Move::any) {
 			uint8_t mov = moveGenerator.j%9;
@@ -175,7 +170,7 @@ public:
 		state = actions[--actions_size];
 	}
 
-	inline score_t boardScore() const {
+	inline score_t score() const {
 		if (state.winner == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - actions_size);
 		if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - actions_size);
 		if (state.winner == DRAW) return 0; // draw
@@ -183,44 +178,25 @@ public:
 		return _score(PLAYER_0) - _score(PLAYER_1);
 	}
 
-	void print() const {
-		for (int Y = 0; Y < 3; Y++) {
-			for (int y = 0; y < 3; y++) {
-				for (int X = 0; X < 3; X++)
-				for (int x = 0; x < 3; x++)
-					cerr << to_char(get(Move(Y, X, y, x))) << ' ';
-				cerr << endl;
-			}
-		}
-		print_ttt(state.macro_board);
-		switch (state.winner) {
-		case NONE: cerr << "NONE" << endl; break;
-		case PLAYER_0: cerr << "PLAYER_0" << endl; break;
-		case PLAYER_1: cerr << "PLAYER_1" << endl; break;
-		case DRAW: cerr << "DRAW" << endl; break;
-		}
-		cerr << "#nones: " << state.nones_sum << endl;
-		cerr << "#actions: " << actions_size << endl;
-	}
 
 	const std::array<int, 9>& getBoard() const {
 		return state.board;
 	}
 
+	friend std::ostream& operator<<(std::ostream& os, const Board& that);
+
 private:
 	__attribute__((optimize("unroll-loops")))
-	inline score_t _score(int player) const {
+	score_t _score(int player) const {
 		long s = 0;
 
 		for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-			const long s0 = score(state.board[std::get<0>(line)], player);
-			const long s1 = score(state.board[std::get<1>(line)], player);
-			const long s2 = score(state.board[std::get<2>(line)], player);
+			const long s0 = ttt_score(state.board[std::get<0>(line)], player);
+			const long s1 = ttt_score(state.board[std::get<1>(line)], player);
+			const long s2 = ttt_score(state.board[std::get<2>(line)], player);
 
 			s += std::min(s0, std::min(s1, s2))*(s0+s1+s2);
 		}
-
-		//assert(s >= std::numeric_limits<score_t>::min() && s <= std::numeric_limits<score_t>::max());
 
 		return s;
 	}
@@ -232,10 +208,10 @@ private:
 		{
 			const auto ttt = state.board[i];
 
-			if (score(ttt, PLAYER_0) == VICTORY_POINTS)
+			if (win(ttt, PLAYER_0))
 				set_ttt_int(macro_board, i, PLAYER_0);
 
-			else if (score(ttt, PLAYER_1) == VICTORY_POINTS)
+			else if (win(ttt, PLAYER_1))
 				set_ttt_int(macro_board, i, PLAYER_1);
 
 			else if (nones(ttt) == 0)
@@ -251,3 +227,31 @@ private:
 	int actions_size = 0;
 	std::array<State, 9*9> actions;
 };
+
+std::ostream& operator<<(std::ostream& os, const Board& that) {
+	for (int Y = 0; Y < 3; Y++) {
+		for (int y = 0; y < 3; y++) {
+			for (int X = 0; X < 3; X++)
+			for (int x = 0; x < 3; x++)
+				std::cerr << to_char(that.get(Move(Y, X, y, x))) << ' ';
+			std::cerr << std::endl;
+		}
+	}
+
+	print_ttt(that.state.macro_board);
+
+	switch (that.state.winner) {
+	case NONE:
+		std::cerr << "NONE" << std::endl; break;
+	case PLAYER_0:
+		std::cerr << "PLAYER_0" << std::endl; break;
+	case PLAYER_1:
+		std::cerr << "PLAYER_1" << std::endl; break;
+	case DRAW:
+		std::cerr << "DRAW" << std::endl; break;
+	}
+
+	std::cerr << "#nones: " << that.state.nones_sum << std::endl;
+	std::cerr << "#actions: " << that.actions_size << std::endl;
+	return os;
+}

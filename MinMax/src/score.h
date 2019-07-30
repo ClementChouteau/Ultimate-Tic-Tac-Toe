@@ -14,7 +14,7 @@ using score_t = int16_t;
 
 static std::array<score_t, 2*NUMBER_OF_TTT> _score;
 
-inline score_t score(int ttt, int player) {
+inline score_t ttt_score(int ttt, int player) {
 	return _score[2*ttt+player-1];
 }
 

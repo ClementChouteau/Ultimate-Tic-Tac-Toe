@@ -69,7 +69,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 	ExploredPositionType type = ExploredPositionType::UPPER;
 	MoveValued best = {Move::end, -GLOBAL_VICTORY0_SCORE-1};
 	if (board.winnerOrDraw() != NONE || depth == maxDepth) {
-		best.value = (myTurn ? 1 : -1) * board.boardScore();
+		best.value = (myTurn ? 1 : -1) * board.score();
 		return best; // no need to save this position
 	}
 	else {
@@ -145,7 +145,7 @@ MoveValued backtracking(Board& board, int depth, int maxDepth, bool myTurn, scor
 				const int ttt1 = board.get_ttt(mv.move.Y(), mv.move.X());
 				int ttt2 = ttt1;
 				set_ttt_int(ttt2, mv.move.y(), mv.move.x(), CURRENT(myTurn));
-				mv.value = (myTurn ? 1 : -1) * score(ttt2, myTurn ? PLAYER_0 : PLAYER_1);
+				mv.value = (myTurn ? 1 : -1) * ttt_score(ttt2, myTurn ? PLAYER_0 : PLAYER_1);
 			}
 		}
 
@@ -321,7 +321,7 @@ int main() {
 
 			const auto diff = chrono::steady_clock::now() - start;
 			const double dt = chrono::duration <double, std::ratio<1>> (diff).count();
-			cerr << "score: " << board.boardScore() << ", best: " << best.value << ", total cost: " << positions << ", total time: " << dt << endl;
+			cerr << "score: " << board.score() << ", best: " << best.value << ", total cost: " << positions << ", total time: " << dt << endl;
 			cerr << "choice D" << (maxDepth-1) << " (Y, X, y, x): " << best.move.Y() << ' ' << best.move.X() << ' ' << best.move.y() << ' ' << best.move.x() << endl;
 			cerr << endl;
 
