@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <bitset>
 
 #include "score.h" // score_t
 #include "zobrist.h" // hash_t

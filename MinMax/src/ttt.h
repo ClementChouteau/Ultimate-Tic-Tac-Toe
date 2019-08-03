@@ -1,19 +1,20 @@
 #pragma once
 
 #include <iostream>
-#include <vector>
+#include <array>
 #include <tuple>
-#include <bitset>
 
 #include <cmath>
 
-#define NONE (0)
-#define PLAYER_0 (1)
-#define PLAYER_1 (2)
-// macro board only
-#define DRAW (3)
+#include "types.h"
 
-#define EMPTY_TTT (0)
+#define NONE ((player_t)0)
+#define PLAYER_0 ((player_t)1)
+#define PLAYER_1 ((player_t)2)
+// macro board only
+#define DRAW ((player_t)3)
+
+#define EMPTY_TTT ((ttt_t)0)
 #define NUMBER_OF_TTT ((long)std::pow(4, 3*3))
 
 #define OTHER(player) (3-(player))
@@ -34,27 +35,27 @@ static constexpr std::array<std::tuple<int, int, int>, 8> ttt_possible_lines =
 	std::make_tuple(POS_TO_I(0, 2), POS_TO_I(1, 1), POS_TO_I(2, 0))
 };
 
-inline int get_ttt_int(int ttt, int i) {
+inline ttt_t get_ttt_int(ttt_t ttt, int i) {
 	return (ttt >> 2*i) & 3;
 }
 
-inline void set_ttt_int(int& ttt, int i, int c) {
-	const int mask = 3 << 2*i;
-	const int s = c << 2*i;
+inline void set_ttt_int(ttt_t& ttt, int i, int c) {
+	const ttt_t mask = 3 << 2*i;
+	const ttt_t s = c << 2*i;
 	ttt = (ttt & ~mask) | s;
 }
 
-inline int get_ttt_int(int ttt, int y, int x) {
+inline ttt_t get_ttt_int(ttt_t ttt, int y, int x) {
 	return (ttt >> 2*(y*3+x)) & 3;
 }
 
-inline void set_ttt_int(int& ttt, int y, int x, int c) {
-	const int mask = 3 << 2*(y*3+x);
-	const int s = c << 2*(y*3+x);
+inline void set_ttt_int(ttt_t& ttt, int y, int x, int c) {
+	const ttt_t mask = 3 << 2*(y*3+x);
+	const ttt_t s = c << 2*(y*3+x);
 	ttt = (ttt & ~mask) | s;
 }
 
-inline char to_char(int t) {
+inline char to_char(ttt_t t) {
 	switch (t) {
 	case NONE: return '.';
 	case PLAYER_0: return '0';
@@ -64,7 +65,7 @@ inline char to_char(int t) {
 	return -1;
 }
 
-inline int from_char(char c) {
+inline ttt_t from_char(char c) {
 	switch (c) {
 	case '.': return NONE;
 	case '0': return PLAYER_0;
@@ -74,7 +75,7 @@ inline int from_char(char c) {
 	return -1;
 }
 
-void print_ttt(int ttt) {
+void print_ttt(ttt_t ttt) {
 	for (int y = 0; y < 3; y++) {
 		for (int x = 0; x < 3; x++)
 			std::cerr << to_char(get_ttt_int(ttt, y, x)) << ' ';
@@ -82,70 +83,100 @@ void print_ttt(int ttt) {
 	}
 }
 
-inline int nones(int ttt) {
-	return 9-__builtin_popcount(((ttt & 0x55555555) << 1) | (ttt & 0xAAAAAAAA));
+constexpr ttt_t BIT0_IN_EACH = 0b010101010101010101;
+constexpr ttt_t BIT1_IN_EACH = 0b101010101010101010;
+
+inline score_t nones(ttt_t ttt) {
+	ttt = ~ttt;
+	return __builtin_popcount((ttt >> 1) & ttt & BIT0_IN_EACH);
 }
 
-inline bool win(int ttt, int player) {
+constexpr ttt_t LINES_OF_PLAYER0[] = {
+	// lines
+	0b010101000000000000,
+	0b000000010101000000,
+	0b000000000000010101,
+	// columns
+	0b010000010000010000,
+	0b000100000100000100,
+	0b000001000001000001,
+	// diagonals
+	0b010000000100000001,
+	0b000001000100010000,
+};
+
+/// returns ttt where positions 0b11 (DRAW) are transformed in 0b00 (NONE)
+inline ttt_t remove_draw(ttt_t ttt) {
+	return (ttt & (~(ttt << 1) & BIT1_IN_EACH))
+	     | (ttt & (~(ttt >> 1) & BIT0_IN_EACH));
+}
+
+inline bool win(ttt_t ttt, player_t player) {
 	if (player == PLAYER_1) {
 		ttt >>= 1;
 	}
 	// remove DRAW
-	ttt = (ttt & (~(ttt << 1) & 0b101010101010101010))
-	    | (ttt & (~(ttt >> 1) & 0b010101010101010101));
+	ttt = remove_draw(ttt);
 
 	return
-		// diagonals
-		__builtin_popcount(ttt & 0b010000000100000001) == 3 ||
-		__builtin_popcount(ttt & 0b000001000100010000) == 3 ||
-		// lines
-		__builtin_popcount(ttt & 0b010101000000000000) == 3 ||
-		__builtin_popcount(ttt & 0b000000010101000000) == 3 ||
-		__builtin_popcount(ttt & 0b000000000000010101) == 3 ||
-		// columns
-		__builtin_popcount(ttt & 0b010000010000010000) == 3 ||
-		__builtin_popcount(ttt & 0b000100000100000100) == 3 ||
-		__builtin_popcount(ttt & 0b000001000001000001) == 3
+		__builtin_popcount(ttt & LINES_OF_PLAYER0[0]) == 3 ||
+		__builtin_popcount(ttt & LINES_OF_PLAYER0[1]) == 3 ||
+		__builtin_popcount(ttt & LINES_OF_PLAYER0[2]) == 3 ||
+		__builtin_popcount(ttt & LINES_OF_PLAYER0[3]) == 3 ||
+		__builtin_popcount(ttt & LINES_OF_PLAYER0[4]) == 3 ||
+		__builtin_popcount(ttt & LINES_OF_PLAYER0[5]) == 3 ||
+		__builtin_popcount(ttt & LINES_OF_PLAYER0[6]) == 3 ||
+		__builtin_popcount(ttt & LINES_OF_PLAYER0[7]) == 3
 	;
 }
 
-bool winnable(int ttt, int player) {
-	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-		const auto c0 = get_ttt_int(ttt, std::get<0>(line));
-		const auto c1 = get_ttt_int(ttt, std::get<1>(line));
-		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
-
-		if ((c0 == player || c0 == NONE) && (c1 == player || c1 == NONE) && (c2 == player || c2 == NONE))
-			return true;
+inline ttt_t transform_adversary_to_draw(ttt_t ttt, player_t player) {
+	if (player == PLAYER_0) {
+		return ttt | (BIT0_IN_EACH & (~ttt & (ttt >> 1)));
 	}
-
-	return false;
+	if (player == PLAYER_1) {
+		return ttt | (BIT1_IN_EACH & (~ttt & (ttt << 1)));
+	}
+	return ttt;
 }
 
-bool draw(int ttt) {
+inline score_t number_of_ways_to_win(ttt_t ttt, player_t player) {
+	ttt = transform_adversary_to_draw(ttt, player);
+
+	return
+		(__builtin_popcount((ttt & LINES_OF_PLAYER0[0]) ^ ((ttt & (LINES_OF_PLAYER0[0] << 1)) >> 1)) == 2) +
+		(__builtin_popcount((ttt & LINES_OF_PLAYER0[1]) ^ ((ttt & (LINES_OF_PLAYER0[1] << 1)) >> 1)) == 2) +
+		(__builtin_popcount((ttt & LINES_OF_PLAYER0[2]) ^ ((ttt & (LINES_OF_PLAYER0[2] << 1)) >> 1)) == 2) +
+		(__builtin_popcount((ttt & LINES_OF_PLAYER0[3]) ^ ((ttt & (LINES_OF_PLAYER0[3] << 1)) >> 1)) == 2) +
+		(__builtin_popcount((ttt & LINES_OF_PLAYER0[4]) ^ ((ttt & (LINES_OF_PLAYER0[4] << 1)) >> 1)) == 2) +
+		(__builtin_popcount((ttt & LINES_OF_PLAYER0[5]) ^ ((ttt & (LINES_OF_PLAYER0[5] << 1)) >> 1)) == 2) +
+		(__builtin_popcount((ttt & LINES_OF_PLAYER0[6]) ^ ((ttt & (LINES_OF_PLAYER0[6] << 1)) >> 1)) == 2) +
+		(__builtin_popcount((ttt & LINES_OF_PLAYER0[7]) ^ ((ttt & (LINES_OF_PLAYER0[7] << 1)) >> 1)) == 2)
+	;
+}
+
+inline bool winnable(ttt_t ttt, player_t player) {
+	ttt = transform_adversary_to_draw(ttt, player);
+
+	return
+		((__builtin_popcount(ttt & LINES_OF_PLAYER0[0]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[0] << 1)) == 0)) ||
+		((__builtin_popcount(ttt & LINES_OF_PLAYER0[1]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[1] << 1)) == 0)) ||
+		((__builtin_popcount(ttt & LINES_OF_PLAYER0[2]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[2] << 1)) == 0)) ||
+		((__builtin_popcount(ttt & LINES_OF_PLAYER0[3]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[3] << 1)) == 0)) ||
+		((__builtin_popcount(ttt & LINES_OF_PLAYER0[4]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[4] << 1)) == 0)) ||
+		((__builtin_popcount(ttt & LINES_OF_PLAYER0[5]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[5] << 1)) == 0)) ||
+		((__builtin_popcount(ttt & LINES_OF_PLAYER0[6]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[6] << 1)) == 0)) ||
+		((__builtin_popcount(ttt & LINES_OF_PLAYER0[7]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[7] << 1)) == 0))
+	;
+}
+
+inline bool draw(ttt_t ttt) {
 	return !winnable(ttt, PLAYER_0) && !winnable(ttt, PLAYER_1);
 }
 
-int number_of_ways_to_wins(int ttt, int player) {
-	int wins = 0;
-
-	for (int i = 0; i < 9; i++)
-	{
-		const char c = get_ttt_int(ttt, i);
-
-		if (get_ttt_int(ttt, i) != NONE) continue;
-
-		set_ttt_int(ttt, i, player);
-		if (win(ttt, player)) wins++;
-
-		set_ttt_int(ttt, i, c);
-	}
-
-	return wins;
-}
-
-int number_of_threats(int ttt, int player) {
+inline score_t number_of_threats(ttt_t ttt, player_t player) {
 	int threats = 0;
+	ttt = transform_adversary_to_draw(ttt, player);
 
 	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
 		const auto c0 = get_ttt_int(ttt, std::get<0>(line));
@@ -162,32 +193,28 @@ int number_of_threats(int ttt, int player) {
 	return threats;
 }
 
-int number_of_unique_threats(int ttt, int player) {
+inline score_t number_of_unique_threats(ttt_t ttt, player_t player) {
+	ttt = transform_adversary_to_draw(ttt, player);
 	int threats = 0;
 
-	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-		const auto c0 = get_ttt_int(ttt, std::get<0>(line));
-		const auto c1 = get_ttt_int(ttt, std::get<1>(line));
-		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
+	// if the line is a threat, then there is only "player" and '.'
+    // we need to check if there is at least one position different than '.'
+    for (const auto LINE : LINES_OF_PLAYER0) {
+		const auto cnt0 = __builtin_popcount(ttt & LINE);
+		const auto cnt1 = __builtin_popcount(ttt & (LINE << 1));
 
-		if ((c0 == player || c1 == player || c2 == player)
-				&& (c0 == player || c0 == NONE)
-				&& (c1 == player || c1 == NONE)
-				&& (c2 == player || c2 == NONE))
-		{
-			threats++;
-
-			if (c0 == NONE) set_ttt_int(ttt, std::get<0>(line), DRAW);
-			if (c1 == NONE) set_ttt_int(ttt, std::get<1>(line), DRAW);
-			if (c2 == NONE) set_ttt_int(ttt, std::get<2>(line), DRAW);
-		}
-	}
-
+        if ((cnt0 == 0 || cnt1 == 0) && (cnt0 != 0 || cnt1 != 0)) {
+            threats++;
+            auto draw = ((~ttt >> 1) & ~ttt) & LINE;
+            draw |= draw << 1;
+            ttt |= draw;
+        }
+    }
 	return threats;
 }
 
-int number_of_blockages(int ttt, int player) {
-	int blockages = 0;
+inline score_t number_of_blockages(ttt_t ttt, player_t player) {
+	score_t blockages = 0;
 
 	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
 		const auto c0 = get_ttt_int(ttt, std::get<0>(line));

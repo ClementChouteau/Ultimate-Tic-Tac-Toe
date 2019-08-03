@@ -23,10 +23,10 @@
 #define GLOBAL_VICTORY0_SCORE (std::numeric_limits<score_t>::max()-2)
 
 struct State {
-	std::array<int, 9> board;
-	int macro_board;
-	int nones_sum;
-	char winner;
+	std::array<ttt_t, 9> board;
+	ttt_t macro_board;
+	score_t nones_sum;
+	player_t winner;
 };
 
 class Board {
@@ -38,7 +38,7 @@ public:
 		state.nones_sum = 9*9;
 	 }
 
-	Board(const std::string& in) : Board() {
+	Board( const std::string& in) : Board() {
 		int cpt = 0;
 
 		for (int Y = 0; Y < 3; Y++)
@@ -69,19 +69,19 @@ public:
 			state.winner = PLAYER_1;
 	}
 
-	inline int get(const Move& move) const {
+	inline ttt_t get(const Move& move) const {
 		return get_ttt_int(AT_9m(state.board, move), move.j%9);
 	}
 
-	inline int get(uint8_t index, uint8_t j) const {
+	inline ttt_t get(uint8_t index, uint8_t j) const {
 		return get_ttt_int(state.board[index], j);
 	}
 
-	inline int& get_ttt(int Y, int X) {
+	inline ttt_t& get_ttt(int Y, int X) {
 		return AT_9(state.board, Y, X);
 	}
 
-	inline const int& get_ttt(int Y, int X) const {
+	inline const ttt_t& get_ttt(int Y, int X) const {
 		return AT_9(state.board, Y, X);
 	}
 
@@ -123,7 +123,7 @@ public:
 	}
 
 	// name of winner in case of victory or draw
-	inline int winnerOrDraw() const {
+	inline player_t winnerOrDraw() const {
 		if (state.winner != NONE)
 			return state.winner;
 		if (state.nones_sum == 0)
@@ -170,16 +170,15 @@ public:
 		state = actions[--actions_size];
 	}
 
-	inline score_t score() const {
+	inline score_t score(const Scoring& scoring) const {
 		if (state.winner == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - actions_size);
 		if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - actions_size);
 		if (state.winner == DRAW) return 0; // draw
 
-		return _score(PLAYER_0) - _score(PLAYER_1);
+		return _score(scoring, PLAYER_0) - _score(scoring, PLAYER_1);
 	}
 
-
-	const std::array<int, 9>& getBoard() const {
+	const std::array<ttt_t, 9>& getBoard() const {
 		return state.board;
 	}
 
@@ -187,13 +186,13 @@ public:
 
 private:
 	__attribute__((optimize("unroll-loops")))
-	score_t _score(int player) const {
-		long s = 0;
+	score_t _score(const Scoring& scoring, int player) const {
+		score_t s = 0;
 
 		for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-			const long s0 = ttt_score(state.board[std::get<0>(line)], player);
-			const long s1 = ttt_score(state.board[std::get<1>(line)], player);
-			const long s2 = ttt_score(state.board[std::get<2>(line)], player);
+			const score_t s0 = scoring.score(state.board[std::get<0>(line)], player);
+			const score_t s1 = scoring.score(state.board[std::get<1>(line)], player);
+			const score_t s2 = scoring.score(state.board[std::get<2>(line)], player);
 
 			s += std::min(s0, std::min(s1, s2))*(s0+s1+s2);
 		}

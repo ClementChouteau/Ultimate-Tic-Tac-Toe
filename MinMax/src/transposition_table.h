@@ -16,7 +16,7 @@ struct Hashers {
 	ZobristHasher<bool, 1> seed;
 	ZobristHasher<bool, 2> myTurn;
 	ZobristHasher<bool, 2> fullMoves;
-	ZobristHasher<bool, 2*9> move;
+	ZobristHasher<unsigned int, 2*9> move;
 };
 
 struct TranspositionTableCounters {
@@ -45,7 +45,7 @@ public:
 			pos.type = ExploredPositionType::UNKWN;
 	}
 
-	const ExploredPosition* get(const std::array<int, 9>& board, bool myTurn, const Move& moveGenerator) const {
+	const ExploredPosition* get(const std::array<ttt_t, 9>& board, bool myTurn, const Move& moveGenerator) const {
 		counters.get++;
 		
 		const auto fullMoves = (moveGenerator==Move::any);
@@ -79,7 +79,7 @@ public:
 		return nullptr;
 	}
 
-	void put(const std::array<int, 9>& board, ExploredPosition& pos) {
+	void put(const std::array<ttt_t, 9>& board, ExploredPosition& pos) {
 		counters.put++;
 
 		const auto mov = pos.fullMoves ? 0 : Move(pos.bestMove).YX();
@@ -144,8 +144,8 @@ private:
 	}
 
 	template<int Hash>
-	inline hash_t pos_hash(const std::array<int, 9>& board, bool myTurn, bool fullMoves, unsigned int move) const {
-		return (hash_t) wyhash(board.data(), board.size() * sizeof(int), hashers[Hash].seed.hash())
+	inline hash_t pos_hash(const std::array<ttt_t, 9>& board, bool myTurn, bool fullMoves, unsigned int move) const {
+		return (hash_t) wyhash(board.data(), board.size() * sizeof(ttt_t), hashers[Hash].seed.hash())
 			^ hashers[Hash].myTurn.hash(myTurn)
 			^ hashers[Hash].fullMoves.hash(fullMoves)
 			^ hashers[Hash].move.hash(move);
