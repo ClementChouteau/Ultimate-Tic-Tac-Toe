@@ -318,7 +318,8 @@ int main() {
 
 			const auto diff = std::chrono::steady_clock::now() - start;
 			const double dt = std::chrono::duration <double, std::ratio<1>> (diff).count();
-			std::cerr << "score: " << board.score(scoring) << ", best: " << best.value << ", total cost: " << positions << ", total time: " << dt << std::endl;
+			std::cerr << std::fixed;
+			std::cerr << "score: " << board.score(scoring) << ", best: " << best.value << ", positions/s: " << positions/dt << ", total time: " << dt << std::endl;
 			std::cerr << "choice D" << (maxDepth-1) << " (Y, X, y, x): " << best.move.Y() << ' ' << best.move.X() << ' ' << best.move.y() << ' ' << best.move.x() << std::endl;
 			std::cerr << std::endl;
 
