@@ -8,9 +8,10 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--reverse', action='store_true')
+parser.add_argument('--verbose', action='store_true')
 args, _ = parser.parse_known_args()
 
-VERBOSE = False
+VERBOSE = True if args.verbose else False
 
 INITIAL_ROUND = 1
 STARTING_TIMEBANK = 20000
