@@ -4,6 +4,11 @@ import datetime
 import numpy
 import re
 import time
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--reverse', action='store_true')
+args, _ = parser.parse_known_args()
 
 VERBOSE = False
 
@@ -167,9 +172,9 @@ def turn(players, player, board, possible_moves, round_number):
 
 def one_game(statistics):
 		players = [{}, {}]
-
-		players[0]['path'] = sys.argv[1]
-		players[1]['path'] = sys.argv[2]
+		
+		players[0]['path'] = sys.argv[1 if not args.reverse else 2]
+		players[1]['path'] = sys.argv[2 if not args.reverse else 1]
 
 		with Popen([players[0]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process0:
 				with Popen([players[1]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process1:
