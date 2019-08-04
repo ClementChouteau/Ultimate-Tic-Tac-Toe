@@ -5,10 +5,12 @@ import numpy
 import re
 import time
 import argparse
+from scipy import stats
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--reverse', action='store_true')
 parser.add_argument('--verbose', action='store_true')
+parser.add_argument('--bench', action='store_true')
 args, _ = parser.parse_known_args()
 
 VERBOSE = True if args.verbose else False
@@ -171,52 +173,83 @@ def turn(players, player, board, possible_moves, round_number):
 
 		return possible_moves
 
-def one_game(statistics):
-		players = [{}, {}]
-		
-		players[0]['path'] = sys.argv[1 if not args.reverse else 2]
-		players[1]['path'] = sys.argv[2 if not args.reverse else 1]
+def initialized_player(path, playerName, id, process):
+	player = {}
+	player['path'] = path
+	player['timebank'] = STARTING_TIMEBANK
+	player['name'] = playerName
+	player['id'] = id
+	player['program'] = GameProgram(process)
+	return player
 
-		with Popen([players[0]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process0:
-				with Popen([players[1]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process1:
+def play_until_throw_gameover(players):
+	board = Board()
+	round_number = INITIAL_ROUND
+	possible_moves = 9*[POSSIBLE_MOVE]
+	while True:
+		possible_moves = turn(players, players[0], board, possible_moves, round_number)
+		possible_moves = turn(players, players[1], board, possible_moves, round_number)
+		round_number += 1
+
+def one_game(statistics, path0, path1):
+		players = []
+		with Popen([path0], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process0:
+				with Popen([path1], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process1:
 						try:
-								players[0]['timebank'] = STARTING_TIMEBANK
-								players[1]['timebank'] = STARTING_TIMEBANK
+							players = [
+								initialized_player(path0, "player_0", PLAYER0, process0),
+								initialized_player(path1, "player_1", PLAYER1, process1)
+							]
 
-								players[0]['name'] = 'player0'
-								players[1]['name'] = 'player1'
-
-								players[0]['id'] = PLAYER0
-								players[1]['id'] = PLAYER1
-
-								players[0]['program'] = GameProgram(process0)
-								players[1]['program'] = GameProgram(process1)
-
-								board = Board()
-								round_number = INITIAL_ROUND
-								possible_moves = 9*[POSSIBLE_MOVE]
-								while True:
-										possible_moves = turn(players, players[0], board, possible_moves, round_number)
-										possible_moves = turn(players, players[1], board, possible_moves, round_number)
-										round_number += 1
+							play_until_throw_gameover(players)
 
 						except GameOver as game_over:
-								winner = game_over.get_winner()
-								statistics[winner] += 1
-								statistics = f'{statistics[PLAYER0]}, {statistics[PLAYER1]}, draw: {statistics[DRAW]}, '
-
-								if winner == DRAW:
-										print(statistics + 'game is draw')
-								else:
-										winner_name = players[0]['name'] if winner == PLAYER0 else players[1]['name']
-										print(statistics + 'winner is : ' + winner_name + ' reason : ' + game_over.reason)
+							winner = game_over.get_winner()
+							statistics[winner] += 1
+							statistics = f'{statistics[PLAYER0]}, {statistics[PLAYER1]}, draw: {statistics[DRAW]}, '
+							if winner == DRAW:
+									print(statistics + 'game is draw')
+							else:
+									winner_name = players[0]['name'] if winner == PLAYER0 else players[1]['name']
+									print(statistics + 'winner is : ' + winner_name + ' reason : ' + game_over.reason)
 						finally:
 								players[0]['program'].writeLines(['exit'])
 								players[1]['program'].writeLines(['exit'])
 
+def benchmark(statistics, path0):
+		players = []
+		with Popen([path0], stdout=PIPE, stdin=PIPE, stderr=PIPE) as process0:
+			try:
+				players = [
+					initialized_player(path0, "player_0", PLAYER0, process0),
+					initialized_player(path0, "player_1", PLAYER1, None)
+				]
+				board = Board()
+				round_number = INITIAL_ROUND
+				possible_moves = 9*[POSSIBLE_MOVE]
+				possible_moves = turn(players, players[0], board, possible_moves, round_number)
+			finally:
+					positions__per_s = 0.
+					while True:
+						line_str = process0.stderr.readline().decode(CONSOLE_ENCODING)
+						if "positions/s" in line_str:
+							positions__per_s = float(line_str.split(",")[2].split(" ")[2])
+							break
+					players[0]['program'].writeLines(['exit'])
+					return positions__per_s
+
 try:
 		statistics = {PLAYER0: 0, PLAYER1: 0, DRAW: 0}
-		while True:
-				one_game(statistics)
+		if not args.bench:
+			while True:
+					one_game(statistics, sys.argv[1 if not args.reverse else 2], sys.argv[2 if not args.reverse else 1])
+		else:
+			results = []
+			for _ in range(20):
+				positions__per_s = benchmark(statistics, sys.argv[1 if not args.reverse else 2])
+				print(positions__per_s)
+				results.append(positions__per_s)
+			print(stats.describe(results))
+
 except KeyboardInterrupt:
 		pass
