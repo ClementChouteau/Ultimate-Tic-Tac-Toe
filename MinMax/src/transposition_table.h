@@ -38,7 +38,7 @@ struct TranspositionTableCounters {
 template<int CAPACITY>
 class TranspositionTable {
 public:
-	TranspositionTable<CAPACITY>() {
+	TranspositionTable<CAPACITY>() : positions(CAPACITY) {
 		counters.capacity = CAPACITY;
 
 		for (ExploredPosition& pos : positions)
@@ -151,13 +151,13 @@ private:
 			^ hashers[Hash].move.hash(move);
 	}
 
-public:
-	mutable TranspositionTableCounters counters;
-
 private:
-	std::array<ExploredPosition, CAPACITY> positions;
+	std::vector<ExploredPosition> positions;
 
 	std::array<Hashers, 2> hashers;
+
+public:
+	mutable TranspositionTableCounters counters;
 };
 
 

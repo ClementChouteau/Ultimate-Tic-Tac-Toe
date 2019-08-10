@@ -21,6 +21,8 @@
 
 // GLOBAL_VICTORY0_SCORE+1 and -GLOBAL_VICTORY0_SCORE-1 must be valid numbers !!!
 #define GLOBAL_VICTORY0_SCORE (std::numeric_limits<score_t>::max()-2)
+#define MIN_SCORE (-GLOBAL_VICTORY0_SCORE-1)
+#define MAX_SCORE (GLOBAL_VICTORY0_SCORE+1)
 
 struct State {
 	std::array<ttt_t, 9> board;
@@ -122,7 +124,7 @@ public:
 				&& !isWonOrFull(move) && get(move) == NONE;
 	}
 
-	// name of winner in case of victory or draw
+	// name of winner in case of victory or draw, NONE otherwise
 	inline player_t winnerOrDraw() const {
 		if (state.winner != NONE)
 			return state.winner;

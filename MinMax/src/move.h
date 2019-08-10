@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types.h"
+
 class Move {
 public:
 	uint8_t j:7;

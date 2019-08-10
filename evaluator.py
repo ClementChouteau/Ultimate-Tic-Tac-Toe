@@ -6,6 +6,7 @@ import re
 import time
 import argparse
 from scipy import stats
+import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--reverse', action='store_true')
@@ -233,7 +234,7 @@ def benchmark(statistics, path0):
 					while True:
 						line_str = process0.stderr.readline().decode(CONSOLE_ENCODING)
 						if "positions/s" in line_str:
-							positions__per_s = float(line_str.split(",")[2].split(" ")[2])
+							positions__per_s = float(re.search("positions/s: ([0-9]+)", line_str).group().split(" ")[1])
 							break
 					players[0]['program'].writeLines(['exit'])
 					return positions__per_s
