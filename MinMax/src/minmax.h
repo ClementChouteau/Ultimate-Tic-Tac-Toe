@@ -163,36 +163,32 @@ private:
             bool found = false;
             int nbMoves = 0;
             for (MoveValued& mv : moves[depth]) {
-                if (mv.move == Move::end) break;
+                if (mv.move == Move::end) {
+                    break;
+                }
                 nbMoves++;
 
-                // hash move found
+                // there was a hashmove corresponding to the current position and we found it in the possible moves
                 if (pos != nullptr && mv.move == hashMove.move) {
                     found = true;
-                    // stored result is relevant
-                    if ((maxDepth-depth) <= pos->depthBelow && pos->type != ExploredPositionType::UPPER) {
-                        mv.move = Move::skip;
-                    }
-                    // irrelevant, but first to check
-                    else {
-                        std::swap(moves[depth][0].move, mv.move);
-                    }
-                    continue;
+                    std::swap(moves[depth][0].move, mv.move); // relevant hashmove is checked first
                 }
 
-                // heuristic value for move ordering
-                if (maxDepth-depth >= 3) {
-                    mv.value = historyCuts[mv.move.Y()*3 + mv.move.y()][mv.move.X()*3 + mv.move.x()][myTurn ? 1 : 0];
-                }
+                // compute heuristic value for move ordering
                 else {
-                    const auto ttt1 = board.get_ttt(mv.move.Y(), mv.move.X());
-                    auto ttt2 = ttt1;
-                    set_ttt_int(ttt2, mv.move.y(), mv.move.x(), CURRENT(myTurn));
-                    mv.value = (myTurn ? 1 : -1) * scoring.score(ttt2, myTurn ? PLAYER_0 : PLAYER_1);
+                    if (maxDepth - depth >= 3) {
+                        mv.value = historyCuts[mv.move.Y()*3 + mv.move.y()][mv.move.X()*3 + mv.move.x()][myTurn ? 1 : 0];
+                    }
+                    else {
+                        const auto ttt1 = board.get_ttt(mv.move.Y(), mv.move.X());
+                        auto ttt2 = ttt1;
+                        set_ttt_int(ttt2, mv.move.y(), mv.move.x(), CURRENT(myTurn));
+                        mv.value = (myTurn ? 1 : -1) * scoring.score(ttt2, myTurn ? PLAYER_0 : PLAYER_1);
+                    }
                 }
             }
 
-            std::sort(moves[depth].begin() + (found ? 1 : 0), moves[depth].begin()+nbMoves,
+            std::sort(moves[depth].begin() + (found ? 1 : 0), moves[depth].begin() + nbMoves,
                 [](const MoveValued& m1, const MoveValued& m2){ return m1.value > m2.value; });
 
             // for every possible move
