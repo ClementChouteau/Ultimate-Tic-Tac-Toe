@@ -1,0 +1,10 @@
+settings player_names player0,player1
+settings your_bot player0
+settings timebank 10000
+settings time_per_move 100
+settings your_botid 0
+update game round 1
+update game field .,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.
+update game macroboard -1,-1,-1,-1,-1,-1,-1,-1,-1
+action move 10000
+exit
