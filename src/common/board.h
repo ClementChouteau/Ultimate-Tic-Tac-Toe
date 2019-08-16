@@ -68,6 +68,8 @@ public:
 			state.winner = PLAYER_0;
 		if (win(state.macro_board, PLAYER_1))
 			state.winner = PLAYER_1;
+		if (state.nones_sum == 0)
+			state.winner = DRAW;
 	}
 
 	inline ttt_t get(const Move& move) const {
@@ -143,18 +145,14 @@ public:
 
 		state.nones_sum--;
 
-		if (nones(ttt) == 0) {
-			set_ttt_int(state.macro_board, move.j/9, DRAW);
-		}
-		else if (win(ttt, PLAYER_0)) {
+		if (win(ttt, PLAYER_0))
 			set_ttt_int(state.macro_board, move.j/9, PLAYER_0);
-		}
-		else if (win(ttt, PLAYER_1)) {
+		else if (win(ttt, PLAYER_1))
 			set_ttt_int(state.macro_board, move.j/9, PLAYER_1);
-		}
-		else {
+		else if (nones(ttt) == 0)
+			set_ttt_int(state.macro_board, move.j/9, DRAW);
+		else
 			return; // no macro update needed
-		}
 
 		// macro board update
 		state.nones_sum -= nones(ttt); // remove nones in completed ttt
