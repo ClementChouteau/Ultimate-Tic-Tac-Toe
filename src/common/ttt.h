@@ -112,11 +112,12 @@ inline ttt_t remove_draw(ttt_t ttt) {
 }
 
 inline bool win(ttt_t ttt, player_t player) {
-	if (player == PLAYER_1) {
-		ttt >>= 1;
-	}
 	// remove DRAW
-	ttt = remove_draw(ttt);
+	ttt = remove_draw(ttt); // 0b11 => 0b00
+
+	if (player == PLAYER_1) {
+		ttt = (ttt >> 1) & BIT0_IN_EACH; // 0b10 => 0b01, 0b01 => 0b00
+	}
 
 	return
 		__builtin_popcount(ttt & LINES_OF_PLAYER0[0]) == 3 ||
