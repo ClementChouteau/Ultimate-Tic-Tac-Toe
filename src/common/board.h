@@ -231,14 +231,19 @@ private:
 std::ostream& operator<<(std::ostream& os, const Board& that) {
 	for (int Y = 0; Y < 3; Y++) {
 		for (int y = 0; y < 3; y++) {
-			for (int X = 0; X < 3; X++)
-			for (int x = 0; x < 3; x++)
-				std::cerr << to_char(that.get(Move(Y, X, y, x))) << ' ';
+			for (int X = 0; X < 3; X++) {
+				for (int x = 0; x < 3; x++) {
+					std::cerr << to_char(that.get(Move(Y, X, y, x))) << ' ';
+				}
+				std::cerr << ' ';
+			}
 			std::cerr << std::endl;
 		}
+		std::cerr << std::endl;
 	}
 
 	print_ttt(that.state.macro_board);
+	std::cerr << "winner: ";
 
 	switch (that.state.winner) {
 	case NONE:
