@@ -71,6 +71,11 @@ class TicTacToe:
 						for player in [PLAYER0, PLAYER1]:
 								if self.matrix[a] == player and self.matrix[b] == player and self.matrix[c] == player:
 										return player
+				
+				# no winner and no empty slots so it is a draw
+				if numpy.all(self.matrix != '.'):
+					return DRAW
+
 				return NONE
 
 		def is_full_or_won(self):
@@ -96,9 +101,7 @@ class Board:
 
 		def winner(self):
 				winner = TicTacToe(numpy.array([ttt.winner() for ttt in self.iterate()]).reshape(3,3)).winner()
-				if winner != NONE:
-						return winner
-				return DRAW if numpy.all(self.matrix != '.') else NONE
+				return winner
 
 POSSIBLE_MOVE = '-1'
 
@@ -149,11 +152,11 @@ def turn(players, player, board, possible_moves, round_number):
 				board.get_matrix()[j,i] = player['id']
 
 				# compute the possible moves for the next player
-				if board.at(Y, X).is_full_or_won():
-						possible_moves = [ttt.winner() if ttt.is_full_or_won() else '-1' for ttt in board.iterate()]
+				if board.at(y, x).winner() == NONE:
+					possible_moves = [ttt.winner() for ttt in board.iterate()]
+					possible_moves[3*y + x] = '-1'
 				else:
-						possible_moves = [ttt.winner() for ttt in board.iterate()]
-						possible_moves[3*y + x] = '-1'
+					possible_moves = ['-1' if ttt.winner() == NONE else ttt.winner() for ttt in board.iterate()]
 
 		# player wants to skip turn (only allowed if board is full or won)
 		elif choice.startswith('no_moves'):
