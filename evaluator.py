@@ -73,8 +73,8 @@ class TicTacToe:
 										return player
 				return NONE
 
-		def is_full(self):
-				return numpy.all(self.matrix != '.')
+		def is_full_or_won(self):
+				return numpy.all(self.matrix != '.') or self.winner() != NONE
 
 class Board:
 		def __init__(self):
@@ -149,8 +149,8 @@ def turn(players, player, board, possible_moves, round_number):
 				board.get_matrix()[j,i] = player['id']
 
 				# compute the possible moves for the next player
-				if board.at(Y, X).is_full():
-						possible_moves = [ttt.winner() if ttt.is_full() else '-1' for ttt in board.iterate()]
+				if board.at(Y, X).is_full_or_won():
+						possible_moves = [ttt.winner() if ttt.is_full_or_won() else '-1' for ttt in board.iterate()]
 				else:
 						possible_moves = [ttt.winner() for ttt in board.iterate()]
 						possible_moves[3*y + x] = '-1'
