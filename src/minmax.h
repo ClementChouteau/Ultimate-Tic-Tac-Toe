@@ -5,8 +5,8 @@
 #include <iostream>
 #include <chrono>
 
-#include "move.h"
-#include "board.h"
+#include "common/move.h"
+#include "common/board.h"
 #include "transposition_table.h"
 
 #define MIN_DEPTH (1)

@@ -9,8 +9,8 @@
 
 #include "explored_position.h"
 #include "zobrist.h"
-#include "score.h"
-#include "move.h"
+#include "common/score.h"
+#include "common/move.h"
 
 struct Hashers {
 	ZobristHasher<bool, 1> seed;

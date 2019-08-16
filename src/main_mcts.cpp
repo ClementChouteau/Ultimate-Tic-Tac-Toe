@@ -4,16 +4,14 @@
 #include <string>
 #include <chrono>
 
-#include "minmax.h"
-#include "board.h"
+#include "mcts.h"
+#include "common/board.h"
 
 // Constants and types ////////////////////////////////////////
 
 #define BUDGET_TIME (450) // ms
 #define FAILSAFE_TIME (100) // ms
 #define SAFE_TIME (2*(BUDGET_TIME)) // ms
-
-#define TABLE_SIZE (1 << 24)
 
 void outputMove(const Move& move) {
 	if (move == Move::end || move == Move::skip) {
@@ -38,8 +36,7 @@ int main() {
 
 	Move givenMoveGenerator;
 
-	const Scoring scoring;
-	MinMaxBasedAI<TABLE_SIZE> ai(scoring);
+	MCTSBasedAI ai;
 
 	while (true) {
 		std::string line;

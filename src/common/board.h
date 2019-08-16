@@ -10,7 +10,6 @@
 #include <climits>
 
 #include "score.h"
-#include "zobrist.h"
 #include "move.h"
 
 #define CURRENT(myTurn) ((myTurn) ? PLAYER_0 : PLAYER_1)

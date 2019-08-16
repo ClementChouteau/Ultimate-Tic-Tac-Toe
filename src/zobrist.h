@@ -6,8 +6,8 @@
 
 #include <cstdint>
 
-#include "ttt.h"
-#include "score.h"
+#include "common/ttt.h"
+#include "common/score.h"
 
 using hash_t = std::uint32_t;
 
