@@ -18,7 +18,7 @@ test: all
 	./bin/main_minmax < in/test.in
 	./bin/main_mcts < in/test.in
 
-report: all
+report: minmax
 	python evaluator.py ./bin/main_minmax --bench
 	/usr/bin/time --verbose sh -c './bin/main_minmax < in/begin0.in  >/dev/null 2>/dev/null'
 	valgrind --tool=cachegrind ./bin/main_minmax < in/begin0.in
