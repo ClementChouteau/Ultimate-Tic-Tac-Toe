@@ -141,19 +141,64 @@ inline ttt_t transform_adversary_to_draw(ttt_t ttt, player_t player) {
 	return ttt;
 }
 
-inline score_t number_of_ways_to_win(ttt_t ttt, player_t player) {
-	ttt = transform_adversary_to_draw(ttt, player);
+score_t number_of_ways_to_win(ttt_t ttt, player_t player) {
+	score_t wins = 0;
 
-	return
-		(__builtin_popcount((ttt & LINES_OF_PLAYER0[0]) ^ ((ttt & (LINES_OF_PLAYER0[0] << 1)) >> 1)) == 2) +
-		(__builtin_popcount((ttt & LINES_OF_PLAYER0[1]) ^ ((ttt & (LINES_OF_PLAYER0[1] << 1)) >> 1)) == 2) +
-		(__builtin_popcount((ttt & LINES_OF_PLAYER0[2]) ^ ((ttt & (LINES_OF_PLAYER0[2] << 1)) >> 1)) == 2) +
-		(__builtin_popcount((ttt & LINES_OF_PLAYER0[3]) ^ ((ttt & (LINES_OF_PLAYER0[3] << 1)) >> 1)) == 2) +
-		(__builtin_popcount((ttt & LINES_OF_PLAYER0[4]) ^ ((ttt & (LINES_OF_PLAYER0[4] << 1)) >> 1)) == 2) +
-		(__builtin_popcount((ttt & LINES_OF_PLAYER0[5]) ^ ((ttt & (LINES_OF_PLAYER0[5] << 1)) >> 1)) == 2) +
-		(__builtin_popcount((ttt & LINES_OF_PLAYER0[6]) ^ ((ttt & (LINES_OF_PLAYER0[6] << 1)) >> 1)) == 2) +
-		(__builtin_popcount((ttt & LINES_OF_PLAYER0[7]) ^ ((ttt & (LINES_OF_PLAYER0[7] << 1)) >> 1)) == 2)
-	;
+	for (int i = 0; i < 9; i++)
+	{
+		const auto c = get_ttt_int(ttt, i);
+
+		if (get_ttt_int(ttt, i) != NONE) continue;
+
+		set_ttt_int(ttt, i, player);
+		if (win(ttt, player)) wins++;
+
+		set_ttt_int(ttt, i, c);
+	}
+
+	return wins;
+}
+
+score_t number_of_threats(ttt_t ttt, player_t player) {
+	score_t threats = 0;
+
+	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
+		const auto c0 = get_ttt_int(ttt, std::get<0>(line));
+		const auto c1 = get_ttt_int(ttt, std::get<1>(line));
+		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
+
+		if ((c0 == player || c1 == player || c2 == player)
+				&& (c0 == player || c0 == NONE)
+				&& (c1 == player || c1 == NONE)
+				&& (c2 == player || c2 == NONE))
+			threats++;
+	}
+
+	return threats;
+}
+
+score_t number_of_unique_threats(ttt_t ttt, player_t player) {
+	score_t threats = 0;
+
+	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
+		const auto c0 = get_ttt_int(ttt, std::get<0>(line));
+		const auto c1 = get_ttt_int(ttt, std::get<1>(line));
+		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
+
+		if ((c0 == player || c1 == player || c2 == player)
+				&& (c0 == player || c0 == NONE)
+				&& (c1 == player || c1 == NONE)
+				&& (c2 == player || c2 == NONE))
+		{
+			threats++;
+
+			if (c0 == NONE) set_ttt_int(ttt, std::get<0>(line), DRAW);
+			if (c1 == NONE) set_ttt_int(ttt, std::get<1>(line), DRAW);
+			if (c2 == NONE) set_ttt_int(ttt, std::get<2>(line), DRAW);
+		}
+	}
+
+	return threats;
 }
 
 inline bool winnable(ttt_t ttt, player_t player) {
@@ -173,45 +218,6 @@ inline bool winnable(ttt_t ttt, player_t player) {
 
 inline bool draw(ttt_t ttt) {
 	return !winnable(ttt, PLAYER_0) && !winnable(ttt, PLAYER_1);
-}
-
-inline score_t number_of_threats(ttt_t ttt, player_t player) {
-	int threats = 0;
-	ttt = transform_adversary_to_draw(ttt, player);
-
-	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-		const auto c0 = get_ttt_int(ttt, std::get<0>(line));
-		const auto c1 = get_ttt_int(ttt, std::get<1>(line));
-		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
-
-		if ((c0 == player || c1 == player || c2 == player)
-				&& (c0 == player || c0 == NONE)
-				&& (c1 == player || c1 == NONE)
-				&& (c2 == player || c2 == NONE))
-			threats++;
-	}
-
-	return threats;
-}
-
-inline score_t number_of_unique_threats(ttt_t ttt, player_t player) {
-	ttt = transform_adversary_to_draw(ttt, player);
-	int threats = 0;
-
-	// if the line is a threat, then there is only "player" and '.'
-    // we need to check if there is at least one position different than '.'
-    for (const auto LINE : LINES_OF_PLAYER0) {
-		const auto cnt0 = __builtin_popcount(ttt & LINE);
-		const auto cnt1 = __builtin_popcount(ttt & (LINE << 1));
-
-        if ((cnt0 == 0 || cnt1 == 0) && (cnt0 != 0 || cnt1 != 0)) {
-            threats++;
-            auto draw = ((~ttt >> 1) & ~ttt) & LINE;
-            draw |= draw << 1;
-            ttt |= draw;
-        }
-    }
-	return threats;
 }
 
 inline score_t number_of_blockages(ttt_t ttt, player_t player) {
