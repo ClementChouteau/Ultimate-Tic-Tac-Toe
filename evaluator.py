@@ -119,9 +119,9 @@ def turn(players, player, board, possible_moves, round_number):
 		if round_number == INITIAL_ROUND:
 				lines.append(f"settings player_names {players[0]['name']},{players[1]['name']}")
 				lines.append(f"settings your_bot {player['name']}")
-				lines.append(f"settings timebank 10000")
-				lines.append(f"settings time_per_move 100")
-				lines.append('settings your_botid 0')
+				lines.append(f"settings timebank {player['timebank']}")
+				lines.append(f"settings time_per_move {TIME_PER_MOVE}")
+				lines.append(f"settings your_botid {player['id']}")
 
 		# start of round for this player
 		lines.append(f'update game round {round_number}')
