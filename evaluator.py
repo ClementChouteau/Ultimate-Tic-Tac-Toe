@@ -7,6 +7,7 @@ import time
 import argparse
 from scipy import stats
 import re
+import random
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--reverse', action='store_true')
@@ -177,13 +178,12 @@ def turn(players, player, board, possible_moves, round_number):
 
 		return possible_moves
 
-def initialized_player(path, playerName, id, process):
+def initialized_player(path, playerName, id):
 	player = {}
 	player['path'] = path
 	player['timebank'] = STARTING_TIMEBANK
 	player['name'] = playerName
 	player['id'] = id
-	player['program'] = GameProgram(process)
 	return player
 
 def play_until_throw_gameover(players):
@@ -195,39 +195,34 @@ def play_until_throw_gameover(players):
 		possible_moves = turn(players, players[1], board, possible_moves, round_number)
 		round_number += 1
 
-def one_game(statistics, path0, path1):
-		players = []
-		with Popen([path0], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process0:
-				with Popen([path1], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process1:
-						try:
-							players = [
-								initialized_player(path0, "player_0", PLAYER0, process0),
-								initialized_player(path1, "player_1", PLAYER1, process1)
-							]
-
-							play_until_throw_gameover(players)
-
-						except GameOver as game_over:
-							winner = game_over.get_winner()
-							statistics[winner] += 1
-							statistics = f'{statistics[PLAYER0]}, {statistics[PLAYER1]}, draw: {statistics[DRAW]}, '
-							if winner == DRAW:
-									print(statistics + 'game is draw')
-							else:
-									winner_name = players[0]['name'] if winner == PLAYER0 else players[1]['name']
-									print(statistics + 'winner is : ' + winner_name + ' reason : ' + game_over.reason)
-						finally:
-								players[0]['program'].writeLines(['exit'])
-								players[1]['program'].writeLines(['exit'])
-
-def benchmark(statistics, path0):
-		players = []
-		with Popen([path0], stdout=PIPE, stdin=PIPE, stderr=PIPE) as process0:
+def one_game(statistics, player0, player1):
+	players = [player0, player1]
+	with Popen([players[0]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process0:
+		with Popen([players[1]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process1:
 			try:
-				players = [
-					initialized_player(path0, "player_0", PLAYER0, process0),
-					initialized_player(path0, "player_1", PLAYER1, None)
-				]
+				players[0]['program'] = GameProgram(process0)
+				players[1]['program'] = GameProgram(process1)
+				play_until_throw_gameover(players)
+
+			except GameOver as game_over:
+				winner = game_over.get_winner()
+				statistics[winner] += 1
+				statistics_str = f'{statistics[PLAYER0]}, {statistics[PLAYER1]}, draw: {statistics[DRAW]}, '
+				if winner == DRAW:
+					print(statistics_str + 'game is draw')
+				else:
+					winner_name = players[0]['name'] if winner == players[0]['id'] else players[1]['name']
+					print(statistics_str + 'winner is : ' + winner_name + ' reason : ' + game_over.reason)
+			finally:
+					players[0]['program'].writeLines(['exit'])
+					players[1]['program'].writeLines(['exit'])
+
+def benchmark(player):
+		players = [player, player]
+		with Popen([players[0]['path']], stdout=PIPE, stdin=PIPE, stderr=PIPE) as process0:
+			try:
+				players[0]['program'] = GameProgram(process0)
+
 				board = Board()
 				round_number = INITIAL_ROUND
 				possible_moves = 9*[POSSIBLE_MOVE]
@@ -243,14 +238,22 @@ def benchmark(statistics, path0):
 					return positions__per_s
 
 try:
-		statistics = {PLAYER0: 0, PLAYER1: 0, DRAW: 0}
 		if not args.bench:
+			statistics = {PLAYER0: 0, PLAYER1: 0, DRAW: 0}
 			while True:
-					one_game(statistics, sys.argv[1 if not args.reverse else 2], sys.argv[2 if not args.reverse else 1])
+				players = [
+					initialized_player(sys.argv[1], "player_0", PLAYER0),
+					initialized_player(sys.argv[2], "player_1", PLAYER1),
+				]
+
+				player0, player1 = (players[1], players[0]) if args.reverse else (players[0], players[1])
+				one_game(statistics, player0, player1)
+				args.reverse = not args.reverse # we need to permute players to remove start bias
 		else:
 			results = []
 			for _ in range(20):
-				positions__per_s = benchmark(statistics, sys.argv[1 if not args.reverse else 2])
+				player = initialized_player(sys.argv[1], "player_0", PLAYER0)
+				positions__per_s = benchmark(player)
 				print(positions__per_s)
 				results.append(positions__per_s)
 			print(stats.describe(results))
