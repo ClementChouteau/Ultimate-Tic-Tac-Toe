@@ -132,34 +132,6 @@ inline bool win(ttt_t ttt, player_t player) {
 	;
 }
 
-/// ttt that are (won/lost/draw) are each transformed into one unique ttt
-/// this is allow us to remember more positions in the table
-inline ttt_t normalize(ttt_t ttt) {
-	// 0 0 0
-	// 0 0 0
-	// 0 0 0
-	const auto WON0_TTT = BIT0_IN_EACH;
-
-	// 1 1 1
-	// 1 1 1
-	// 1 1 1
-	const auto WON1_TTT = BIT1_IN_EACH;
-
-	// 0 0 1
-	// 1 1 0
-	// 0 1 0
-	const auto DRAW_TTT = 0b010110101001011001;
-
-	if (win(ttt, PLAYER_0))
-		return WON0_TTT;
-	if (win(ttt, PLAYER_1))
-		return WON1_TTT;
-	if (nones(ttt) == 0)
-		return DRAW_TTT;
-
-	return ttt;
-}
-
 inline ttt_t transform_adversary_to_draw(ttt_t ttt, player_t player) {
 	if (player == PLAYER_0) {
 		return ttt | (BIT0_IN_EACH & (~ttt & (ttt >> 1)));

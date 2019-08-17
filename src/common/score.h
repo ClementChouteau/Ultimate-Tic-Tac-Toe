@@ -53,3 +53,31 @@ private:
 private:
 	std::array<score_t, 2*NUMBER_OF_TTT> _score;
 };
+
+/// ttt that are (won/lost/draw) are each transformed into one unique ttt
+/// this is allow us to remember more positions in the table
+inline ttt_t normalize(const Scoring* scoring, ttt_t ttt) {
+	// 0 0 0
+	// 0 0 0
+	// 0 0 0
+	const auto WON0_TTT = BIT0_IN_EACH;
+
+	// 1 1 1
+	// 1 1 1
+	// 1 1 1
+	const auto WON1_TTT = BIT1_IN_EACH;
+
+	// 0 0 1
+	// 1 1 0
+	// 0 1 0
+	const auto DRAW_TTT = 0b010110101001011001;
+
+	if (scoring->score(ttt, PLAYER_0) == VICTORY_POINTS)
+		return WON0_TTT;
+	if (scoring->score(ttt, PLAYER_1) == VICTORY_POINTS)
+		return WON1_TTT;
+	if (nones(ttt) == 0)
+		return DRAW_TTT;
+
+	return ttt;
+}

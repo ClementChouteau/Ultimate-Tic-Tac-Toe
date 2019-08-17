@@ -32,14 +32,14 @@ struct State {
 
 class Board {
 public:
-	Board() {
+	Board(const Scoring* given_scoring) : scoring(given_scoring) {
 		state.board = {EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT};
 		state.macro_board = EMPTY_TTT;
 		state.winner = NONE;
 		state.nones_sum = 9*9;
 	 }
 
-	Board( const std::string& in) : Board() {
+	Board(const Scoring* given_scoring, const std::string& in) : Board(given_scoring) {
 		int cpt = 0;
 
 		for (int Y = 0; Y < 3; Y++)
@@ -61,7 +61,7 @@ public:
 				state.nones_sum -= nones(ttt);
 			}
 
-			ttt = normalize(ttt);
+			ttt = normalize(scoring, ttt);
 		}
 
 		state.macro_board = macroBoardFromBoard();
@@ -91,11 +91,11 @@ public:
 	}
 
 	inline bool isWonOrFull_d(uint8_t m) const {
-		return win(state.board[m], PLAYER_0) || win(state.board[m], PLAYER_1) || nones(state.board[m]) == 0;
+		return scoring->score(state.board[m], PLAYER_0) == VICTORY_POINTS || scoring->score(state.board[m], PLAYER_1) == VICTORY_POINTS || nones(state.board[m]) == 0;
 	}
 
 	inline bool isWonOrFull(Move m) const {
-		return win(AT_9m(state.board, m), PLAYER_0) || win(AT_9m(state.board, m), PLAYER_1) || nones(AT_9m(state.board, m)) == 0;
+		return scoring->score(AT_9m(state.board, m), PLAYER_0) == VICTORY_POINTS || scoring->score(AT_9m(state.board, m), PLAYER_1) == VICTORY_POINTS || nones(AT_9m(state.board, m)) == 0;
 	}
 
 	inline void possibleMoves(std::array<MoveValued, 9*9+1>& moves, const Move& moveGenerator) const {
@@ -145,14 +145,14 @@ public:
 		set_ttt_int(ttt, move.j%9, CURRENT(myTurn));
 		const auto nones_to_remove = nones(ttt);
 
-		ttt = normalize(ttt);
+		ttt = normalize(scoring, ttt);
 
 		state.nones_sum--; // one none was removed of the ttt
 
 		// macro board update if necessary
-		if (win(ttt, PLAYER_0))
+		if (scoring->score(ttt, PLAYER_0) == VICTORY_POINTS)
 			set_ttt_int(state.macro_board, move.j/9, PLAYER_0);
-		else if (win(ttt, PLAYER_1))
+		else if (scoring->score(ttt, PLAYER_1) == VICTORY_POINTS)
 			set_ttt_int(state.macro_board, move.j/9, PLAYER_1);
 		else if (nones(ttt) == 0)
 			set_ttt_int(state.macro_board, move.j/9, DRAW);
@@ -162,9 +162,9 @@ public:
 		state.nones_sum -= nones_to_remove; // remove nones of the (now completed) ttt
 
 		// winner state update
-		if (win(state.macro_board, PLAYER_0))
+		if (scoring->score(state.macro_board, PLAYER_0) == VICTORY_POINTS)
 			state.winner = PLAYER_0;
-		else if (win(state.macro_board, PLAYER_1))
+		else if (scoring->score(state.macro_board, PLAYER_1) == VICTORY_POINTS)
 			state.winner = PLAYER_1;
 		else if (state.nones_sum == 0)
 			state.winner = DRAW;
@@ -228,6 +228,7 @@ private:
 
 private:
 	State state;
+	const Scoring* scoring;
 
 	int actions_size = 0;
 	std::array<State, 9*9> actions;
