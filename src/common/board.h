@@ -139,12 +139,12 @@ public:
 		actions[actions_size++] = state;
 
 		// actions here
-		set_ttt_int(AT_9m(state.board, move), move.j%9, CURRENT(myTurn));
+		auto& ttt = AT_9m(state.board, move);
+		set_ttt_int(ttt, move.j%9, CURRENT(myTurn));
 
-		const auto ttt = AT_9m(state.board, move);
+		state.nones_sum--; // one none was removed of the ttt
 
-		state.nones_sum--;
-
+		// macro board update if necessary
 		if (win(ttt, PLAYER_0))
 			set_ttt_int(state.macro_board, move.j/9, PLAYER_0);
 		else if (win(ttt, PLAYER_1))
@@ -152,11 +152,11 @@ public:
 		else if (nones(ttt) == 0)
 			set_ttt_int(state.macro_board, move.j/9, DRAW);
 		else
-			return; // no macro update needed
+			return; // no winner state update needed
 
-		// macro board update
-		state.nones_sum -= nones(ttt); // remove nones in completed ttt
+		state.nones_sum -= nones(ttt); // remove nones of the (now completed) ttt
 
+		// winner state update
 		if (win(state.macro_board, PLAYER_0))
 			state.winner = PLAYER_0;
 		else if (win(state.macro_board, PLAYER_1))
