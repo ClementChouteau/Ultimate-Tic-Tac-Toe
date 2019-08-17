@@ -55,11 +55,13 @@ public:
 
 		for (int Y = 0; Y < 3; Y++)
 		for (int X = 0; X < 3; X++) {
-			const auto ttt = get_ttt(Y, X);
+			auto& ttt = get_ttt(Y, X);
 
 			if (win(ttt, PLAYER_0) || win(ttt, PLAYER_1)) {
 				state.nones_sum -= nones(ttt);
 			}
+
+			ttt = normalize(ttt);
 		}
 
 		state.macro_board = macroBoardFromBoard();
@@ -141,6 +143,9 @@ public:
 		// actions here
 		auto& ttt = AT_9m(state.board, move);
 		set_ttt_int(ttt, move.j%9, CURRENT(myTurn));
+		const auto nones_to_remove = nones(ttt);
+
+		ttt = normalize(ttt);
 
 		state.nones_sum--; // one none was removed of the ttt
 
@@ -154,7 +159,7 @@ public:
 		else
 			return; // no winner state update needed
 
-		state.nones_sum -= nones(ttt); // remove nones of the (now completed) ttt
+		state.nones_sum -= nones_to_remove; // remove nones of the (now completed) ttt
 
 		// winner state update
 		if (win(state.macro_board, PLAYER_0))
@@ -170,11 +175,13 @@ public:
 	}
 
 	inline score_t score(const Scoring& scoring) const {
-		if (state.winner == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - actions_size);
-		if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - actions_size);
-		if (state.winner == DRAW) return 0; // draw
+		if (state.winner == NONE)
+			return _score(scoring, PLAYER_0) - _score(scoring, PLAYER_1);
 
-		return _score(scoring, PLAYER_0) - _score(scoring, PLAYER_1);
+		// we remove the explored depth to the score to choose closest victory (or farthest defeat)
+		else if (state.winner == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - actions_size);
+		else if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - actions_size);
+		else if (state.winner == DRAW) return 0; // draw
 	}
 
 	const std::array<ttt_t, 9>& getBoard() const {
