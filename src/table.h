@@ -12,7 +12,7 @@
 #include "score.h"
 #include "move.h"
 
-#define TABLE_SIZE (2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2*2)
+#define TABLE_SIZE (1 << 24)
 
 enum ValueType {
 	UNKWN = 0,
