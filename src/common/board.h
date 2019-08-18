@@ -22,6 +22,19 @@
 #define MAX_NEGATABLE_SCORE (std::numeric_limits<score_t>::max()) // used to initialize the score to an impossible value
 #define MIN_NEGATABLE_SCORE (-MAX_NEGATABLE_SCORE) // used to initialize the score to an impossible value
 #define GLOBAL_VICTORY0_SCORE (MAX_NEGATABLE_SCORE-1) // score of won board at depth 0
+#define DRAW_SCORE (std::numeric_limits<score_t>::min()) // draw is coded as one separate value
+
+inline bool isDraw(score_t score) {
+	return score == DRAW_SCORE;
+}
+
+inline score_t decodeDraw(score_t score) {
+	if (score == DRAW_SCORE) {
+		return 0;
+	}
+
+	return score;
+}
 
 struct State {
 	std::array<ttt_t, 9> board;
@@ -181,7 +194,7 @@ public:
 		// we remove the explored depth to the score to choose closest victory (or farthest defeat)
 		else if (state.winner == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - actions_size);
 		else if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - actions_size);
-		else if (state.winner == DRAW) return 0; // draw
+		else if (state.winner == DRAW) return DRAW_SCORE; // draw
 	}
 
 	const std::array<ttt_t, 9>& getBoard() const {

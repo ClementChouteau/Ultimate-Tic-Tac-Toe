@@ -42,7 +42,7 @@ public:
 
         const auto dt = elapsedInMs();
         std::cerr << std::fixed
-            << "score: " << board.score(scoring) << ", best: " << bestMoveValued.value << ", elapsed : " << dt << " ms" << ", positions: " << exploredPositions << ", positions/s: " << exploredPositions/dt << std::endl
+            << "score: " << decodeDraw(board.score(scoring)) << ", best: " << bestMoveValued.value << ", elapsed : " << dt << " ms" << ", positions: " << exploredPositions << ", positions/s: " << exploredPositions/dt << std::endl
             << "choice D" << maxDepth << " (Y, X, y, x): " << bestMoveValued.move.Y() << ' ' << bestMoveValued.move.X() << ' ' << bestMoveValued.move.y() << ' ' << bestMoveValued.move.x() << std::endl
             << std::endl;
 
@@ -71,7 +71,7 @@ private:
 
     void iterativeDeepening(MoveValued& best, Board& board, bool myTurn) {
         // while we don't have a win/loss
-        while (std::abs(best.value) < GLOBAL_VICTORY0_SCORE-MAX_DEPTH) {
+        while (!isDraw(best.value) && std::abs(best.value) < GLOBAL_VICTORY0_SCORE-MAX_DEPTH) {
             previousExploredPositions = exploredPositions;
 
             best = minmax(board, scoring, 0, maxDepth, myTurn, MIN_NEGATABLE_SCORE, MAX_NEGATABLE_SCORE);
@@ -110,7 +110,13 @@ private:
         MoveValued best = {Move::end, -GLOBAL_VICTORY0_SCORE-1};
 
         if (board.winnerOrDraw() != NONE || depth == maxDepth) {
-            best.value = (myTurn ? 1 : -1) * board.score(scoring);
+            const auto score = board.score(scoring);
+
+            if (isDraw(score))
+                best.value = score;
+            else
+                best.value = (myTurn ? 1 : -1) * score;
+
             return best; // no need to save this position
         }
         else {
@@ -134,13 +140,13 @@ private:
                             return hashMove;
 
                         else if (pos->type == ExploredPositionType::LOWER) {
-                            if (hashMove.value > best.value) {
+                            if (decodeDraw(hashMove.value) > decodeDraw(best.value)) {
                                 best = hashMove;
 
-                                if (best.value > A) {
+                                if (decodeDraw(best.value) > decodeDraw(A)) {
                                     type = ExploredPositionType::EXACT;
                                     A = best.value;
-                                    if (A >= B) { // alpha beta pruning
+                                    if (decodeDraw(A) >= decodeDraw(B)) { // alpha beta pruning
                                         type = ExploredPositionType::LOWER;
                                         historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][myTurn ? 1 : 0] += (double) (1 << 2*(maxDepth-depth));
                                         goto return_pos;
@@ -208,17 +214,19 @@ private:
 
                 board.cancel();
 
-                current.value *= -1; // negamax
+                if (!isDraw(current.value)) {
+                    current.value *= -1; // negamax
+                }
 
-                if (current.value > best.value) {
+                if (decodeDraw(current.value) > decodeDraw(best.value)) {
                     best.value = current.value;
                     best.move = mv.move;
 
-                    if (best.value > A) {
+                    if (decodeDraw(best.value) > decodeDraw(A)) {
                         type = ExploredPositionType::EXACT;
                         A = best.value;
 
-                        if (A >= B) { // alpha beta pruning
+                        if (decodeDraw(A) >= decodeDraw(B)) { // alpha beta pruning
                             type = ExploredPositionType::LOWER;
                             historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][myTurn ? 1 : 0] += (double) (1 << 2*(maxDepth-depth));
                             break;
