@@ -18,10 +18,10 @@
 #define AT_9(s, y, x) (s[y*3 + x])
 #define AT_9m(s, m) (s[((Move) m).j/9])
 
-// GLOBAL_VICTORY0_SCORE+1 and -GLOBAL_VICTORY0_SCORE-1 must be valid numbers !!!
-#define GLOBAL_VICTORY0_SCORE (std::numeric_limits<score_t>::max()-2)
-#define MIN_SCORE (-GLOBAL_VICTORY0_SCORE-1)
-#define MAX_SCORE (GLOBAL_VICTORY0_SCORE+1)
+// int16_t ranges from -32768 to +32767
+#define MAX_NEGATABLE_SCORE (std::numeric_limits<score_t>::max()) // used to initialize the score to an impossible value
+#define MIN_NEGATABLE_SCORE (-MAX_NEGATABLE_SCORE) // used to initialize the score to an impossible value
+#define GLOBAL_VICTORY0_SCORE (MAX_NEGATABLE_SCORE-1) // score of won board at depth 0
 
 struct State {
 	std::array<ttt_t, 9> board;

@@ -74,7 +74,7 @@ private:
         while (std::abs(best.value) < GLOBAL_VICTORY0_SCORE-MAX_DEPTH) {
             previousExploredPositions = exploredPositions;
 
-            best = minmax(board, scoring, 0, maxDepth, myTurn, MIN_SCORE, MAX_SCORE);
+            best = minmax(board, scoring, 0, maxDepth, myTurn, MIN_NEGATABLE_SCORE, MAX_NEGATABLE_SCORE);
 
             printStatistics();
 
