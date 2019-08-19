@@ -189,7 +189,7 @@ public:
 
 	inline score_t score(const Scoring& scoring) const {
 		if (state.winner == NONE)
-			return _score(scoring, PLAYER_0) - _score(scoring, PLAYER_1);
+			return _score(scoring);
 
 		// we remove the explored depth to the score to choose closest victory (or farthest defeat)
 		else if (state.winner == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - actions_size);
@@ -205,15 +205,18 @@ public:
 
 private:
 	__attribute__((optimize("unroll-loops")))
-	score_t _score(const Scoring& scoring, int player) const {
-		score_t s = 0;
+	score_t _score(const Scoring& scoring) const {
+		float s = 0;
 
 		for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-			const score_t s0 = scoring.score(state.board[std::get<0>(line)], player);
-			const score_t s1 = scoring.score(state.board[std::get<1>(line)], player);
-			const score_t s2 = scoring.score(state.board[std::get<2>(line)], player);
+			const float s00 = scoring.score(state.board[std::get<0>(line)], PLAYER_0);
+			const float s01 = scoring.score(state.board[std::get<0>(line)], PLAYER_1);
+			const float s10 = scoring.score(state.board[std::get<1>(line)], PLAYER_0);
+			const float s11 = scoring.score(state.board[std::get<1>(line)], PLAYER_1);
+			const float s20 = scoring.score(state.board[std::get<2>(line)], PLAYER_0);
+			const float s21 = scoring.score(state.board[std::get<2>(line)], PLAYER_1);
 
-			s += std::min(s0, std::min(s1, s2))*(s0+s1+s2);
+			s += (s00 / (s00 + s01)) * 15 * (s10 / (s10 + s11)) * 15 * (s20 / (s20 + s21)) * 15;
 		}
 
 		return s;

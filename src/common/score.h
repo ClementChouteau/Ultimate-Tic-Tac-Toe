@@ -5,11 +5,12 @@
 
 #include <cmath>
 #include <climits>
+#include <cassert>
 
 #include "types.h"
 #include "ttt.h"
 
-#define VICTORY_POINTS (50)
+#define VICTORY_POINTS (15)
 
 class Scoring {
 public:
@@ -34,20 +35,25 @@ private:
 		if (!winnable(ttt, player)) return 0;
 	
 		// score based on number of possible ways to win
-		const score_t wins = number_of_ways_to_win(ttt, player); // max: 5
-
-		switch (wins) {
-		case 5: return VICTORY_POINTS-1;
-		case 4: return VICTORY_POINTS-2;
-		case 3: return VICTORY_POINTS-3;
-		case 2: return 40;
-		case 1: return 35;
+		switch (number_of_ways_to_win(ttt, player)) {
+		case 5: return VICTORY_POINTS - 1;
+		case 4: return VICTORY_POINTS - 2;
+		case 3: return VICTORY_POINTS - 3;
+		case 2: return VICTORY_POINTS - 4;
+		case 1: return VICTORY_POINTS - 5;
+		case 0: break;
+		default: assert(0);
 		}
 	
-		// other metrics
-		const score_t unique_threats = number_of_unique_threats(ttt, player); // max: 4 (when no wins)
-	
-		return 5*unique_threats+1;
+		// score based on number of threats (line started that could be completed)
+		switch (number_of_unique_threats(ttt, player)) {
+		case 4: return 6;
+		case 3: return 5;
+		case 2: return 4;
+		case 1: return 2;
+		case 0: return 1;
+		default: assert(0);
+		}
 	}
 
 private:
