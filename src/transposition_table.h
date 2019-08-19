@@ -14,7 +14,7 @@
 
 struct Hashers {
 	ZobristHasher<bool, 1> seed;
-	ZobristHasher<bool, 2> myTurn;
+	ZobristHasher<bool, 2> player;
 	ZobristHasher<bool, 2> fullMoves;
 	ZobristHasher<unsigned int, 2*9> move;
 };
@@ -45,19 +45,19 @@ public:
 			pos.type = ExploredPositionType::UNKWN;
 	}
 
-	const ExploredPosition* get(const std::array<ttt_t, 9>& board, bool myTurn, const Move& moveGenerator) const {
+	const ExploredPosition* get(const std::array<ttt_t, 9>& board, player_t player, const Move& moveGenerator) const {
 		counters.get++;
 		
 		const auto fullMoves = (moveGenerator==Move::any);
 		const auto mov = fullMoves ? 0 : moveGenerator.yx();
 
-		const auto h0 = pos_hash<0>(board, myTurn, fullMoves, mov);
-		const auto h1 = pos_hash<1>(board, myTurn, fullMoves, mov);
+		const auto h0 = pos_hash<0>(board, encodePlayerAsBool(player), fullMoves, mov);
+		const auto h1 = pos_hash<1>(board, encodePlayerAsBool(player), fullMoves, mov);
 
 		{
 			const auto* ptr0 = &positions[h0%CAPACITY];
 			const auto& p0 = *ptr0;
-			if (p0.otherHash == h1 && p0.myTurn == myTurn
+			if (p0.otherHash == h1 && p0.player == encodePlayerAsBool(player)
 					&& p0.fullMoves == fullMoves
 					&& (fullMoves || Move(p0.bestMove).YX() == mov)) {
 				counters.hit++;
@@ -67,7 +67,7 @@ public:
 		{
 			const auto ptr1 = &positions[h1%CAPACITY];
 			const auto p1 = *ptr1;
-			if (p1.otherHash == h0 && p1.myTurn == myTurn
+			if (p1.otherHash == h0 && p1.player == encodePlayerAsBool(player)
 					&& p1.fullMoves == fullMoves
 					&& (fullMoves || Move(p1.bestMove).YX() == mov)) {
 				counters.hit++;
@@ -84,17 +84,17 @@ public:
 
 		const auto mov = pos.fullMoves ? 0 : Move(pos.bestMove).YX();
 
-		const auto h0 = pos_hash<0>(board, pos.myTurn, pos.fullMoves, mov);
-		const auto h1 = pos_hash<1>(board, pos.myTurn, pos.fullMoves, mov);
+		const auto h0 = pos_hash<0>(board, pos.player, pos.fullMoves, mov);
+		const auto h1 = pos_hash<1>(board, pos.player, pos.fullMoves, mov);
 
 		auto* ptr0 = &positions[h0%CAPACITY];
 		auto* ptr1 = &positions[h1%CAPACITY];
 
-		const bool equals0 = (ptr0->otherHash == h1 && ptr0->myTurn == pos.myTurn
+		const bool equals0 = (ptr0->otherHash == h1 && ptr0->player == pos.player
 							  && ptr0->fullMoves == pos.fullMoves
 							  && (pos.fullMoves || ptr0->bestMove == pos.bestMove));
 
-		const bool equals1 = (ptr1->otherHash == h0 && ptr1->myTurn == pos.myTurn
+		const bool equals1 = (ptr1->otherHash == h0 && ptr1->player == pos.player
 							  && ptr1->fullMoves == pos.fullMoves 
 							  && (pos.fullMoves || ptr1->bestMove == pos.bestMove));
 
@@ -144,9 +144,9 @@ private:
 	}
 
 	template<int Hash>
-	inline hash_t pos_hash(const std::array<ttt_t, 9>& board, bool myTurn, bool fullMoves, unsigned int move) const {
+	inline hash_t pos_hash(const std::array<ttt_t, 9>& board, bool player, bool fullMoves, unsigned int move) const {
 		return (hash_t) wyhash(board.data(), board.size() * sizeof(ttt_t), hashers[Hash].seed.hash())
-			^ hashers[Hash].myTurn.hash(myTurn)
+			^ hashers[Hash].player.hash(player)
 			^ hashers[Hash].fullMoves.hash(fullMoves)
 			^ hashers[Hash].move.hash(move);
 	}

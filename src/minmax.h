@@ -22,7 +22,7 @@ public:
     MinMaxBasedAI(const Scoring& scoring) : scoring(scoring) {        
     }
 
-    Move play(Board& board, bool myTurn, const Move& givenMoveGenerator, double timeBudget) {
+    Move play(Board& board, player_t startingPlayer, const Move& givenMoveGenerator, double timeBudget) {
         start = std::chrono::steady_clock::now();
         this->timeBudget = timeBudget/1000.;
         clearHistoryCuts();
@@ -32,7 +32,7 @@ public:
         MoveValued bestMoveValued = {Move::end, -1};
         maxDepth = MIN_DEPTH;
         try {
-            iterativeDeepening(bestMoveValued, board, myTurn);
+            iterativeDeepening(bestMoveValued, board, startingPlayer);
         }
         // last deepening was aborted
         catch (int) {
@@ -69,12 +69,12 @@ private:
         return elapsedInMs() >= timeBudget;
     }
 
-    void iterativeDeepening(MoveValued& best, Board& board, bool myTurn) {
+    void iterativeDeepening(MoveValued& best, Board& board, player_t startingPlayer) {
         // while we don't have a win/loss
         while (!isDraw(best.value) && std::abs(best.value) < GLOBAL_VICTORY0_SCORE-MAX_DEPTH) {
             previousExploredPositions = exploredPositions;
 
-            best = minmax(board, scoring, 0, maxDepth, myTurn, MIN_NEGATABLE_SCORE, MAX_NEGATABLE_SCORE);
+            best = minmax(board, scoring, 0, maxDepth, startingPlayer, MIN_NEGATABLE_SCORE, MAX_NEGATABLE_SCORE);
 
             printStatistics();
 
@@ -97,7 +97,7 @@ private:
             << ", use%: " << usageRatio << std::endl;
     }
 
-    MoveValued minmax(Board& board, const Scoring& scoring, int depth, int maxDepth, bool myTurn, score_t A, score_t B) {
+    MoveValued minmax(Board& board, const Scoring& scoring, int depth, int maxDepth, player_t player, score_t A, score_t B) {
         exploredPositions++;
 
         if (exploredPositions % TIME_CHECK_EVERY_N_POSITIONS == 0) {
@@ -115,14 +115,14 @@ private:
             if (isDraw(score))
                 best.value = score;
             else
-                best.value = (myTurn ? 1 : -1) * score;
+                best.value = ((player == PLAYER_0) ? 1 : -1) * score;
 
             return best; // no need to save this position
         }
         else {
             // try to find current position in transposition table
             const ExploredPosition* pos = (maxDepth - depth >= TABLE_CUTOFF)
-                ? ttable.get(board.getBoard(), myTurn, movesGenerator[depth])
+                ? ttable.get(board.getBoard(), player, movesGenerator[depth])
                 : nullptr;
             
             MoveValued hashMove = {Move::end, -1};
@@ -148,7 +148,7 @@ private:
                                     A = best.value;
                                     if (decodeDraw(A) >= decodeDraw(B)) { // alpha beta pruning
                                         type = ExploredPositionType::LOWER;
-                                        historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][myTurn ? 1 : 0] += (double) (1 << 2*(maxDepth-depth));
+                                        historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][encodePlayerAsBool(player)] += (double) (1 << 2*(maxDepth-depth));
                                         goto return_pos;
                                     }
                                 }
@@ -183,13 +183,13 @@ private:
                 // compute heuristic value for move ordering
                 else {
                     if (maxDepth - depth >= 3) {
-                        mv.value = historyCuts[mv.move.Y()*3 + mv.move.y()][mv.move.X()*3 + mv.move.x()][myTurn ? 1 : 0];
+                        mv.value = historyCuts[mv.move.Y()*3 + mv.move.y()][mv.move.X()*3 + mv.move.x()][encodePlayerAsBool(player)];
                     }
                     else {
                         const auto ttt1 = board.get_ttt(mv.move.Y(), mv.move.X());
                         auto ttt2 = ttt1;
-                        set_ttt_int(ttt2, mv.move.y(), mv.move.x(), CURRENT(myTurn));
-                        mv.value = (myTurn ? 1 : -1) * scoring.score(ttt2, myTurn ? PLAYER_0 : PLAYER_1);
+                        set_ttt_int(ttt2, mv.move.y(), mv.move.x(), player);
+                        mv.value = ((player == PLAYER_0) ? 1 : -1) * scoring.score(ttt2, player);
                     }
                 }
             }
@@ -202,13 +202,13 @@ private:
                 if (mv.move == Move::end) break;
                 if (mv.move == Move::skip) continue;
 
-                board.action(mv.move, myTurn);
+                board.action(mv.move, player);
 
                 movesGenerator[depth+1] = board.isWonOrFull_d(mv.move.j%9) ? Move::any : mv.move;
 
                 MoveValued current;
                 try {
-                    current = minmax(board, scoring, depth+1, maxDepth, !myTurn, -B, -A);
+                    current = minmax(board, scoring, depth+1, maxDepth, OTHER(player), -B, -A);
                 }
                 catch (int) { board.cancel(); throw; }
 
@@ -228,7 +228,7 @@ private:
 
                         if (decodeDraw(A) >= decodeDraw(B)) { // alpha beta pruning
                             type = ExploredPositionType::LOWER;
-                            historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][myTurn ? 1 : 0] += (double) (1 << 2*(maxDepth-depth));
+                            historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][encodePlayerAsBool(player)] += (double) (1 << 2*(maxDepth-depth));
                             break;
                         }
                     }
@@ -244,7 +244,7 @@ private:
             pos.depthBelow = maxDepth - depth;
             pos.fullMoves = (movesGenerator[depth] == Move::any);
             pos.bestMove = best.move.j;
-            pos.myTurn = myTurn;
+            pos.player = encodePlayerAsBool(player);
             pos.value = A;
 
             ttable.put(board.getBoard(), pos);

@@ -14,6 +14,10 @@
 // macro board only
 #define DRAW ((player_t)3)
 
+inline bool encodePlayerAsBool(player_t player) {
+	return player == PLAYER_0;
+}
+
 #define EMPTY_TTT ((ttt_t)0)
 #define NUMBER_OF_TTT ((long)std::pow(4, 3*3))
 

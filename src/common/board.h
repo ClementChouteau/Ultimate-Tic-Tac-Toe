@@ -12,8 +12,6 @@
 #include "move.h"
 #include "global_score.h"
 
-#define CURRENT(myTurn) ((myTurn) ? PLAYER_0 : PLAYER_1)
-
 #define AT_9(s, y, x) (s[y*3 + x])
 #define AT_9m(s, m) (s[((Move) m).j/9])
 
@@ -130,13 +128,13 @@ public:
 		return NONE;
 	}
 
-	void action(const Move& move, bool myTurn) {
+	void action(const Move& move, player_t player) {
 		// save informations
 		actions[actions_size++] = state;
 
 		// actions here
 		auto& ttt = AT_9m(state.board, move);
-		set_ttt_int(ttt, move.j%9, CURRENT(myTurn));
+		set_ttt_int(ttt, move.j%9, player);
 		const auto nones_to_remove = nones(ttt);
 
 		ttt = normalize(scoring, ttt);

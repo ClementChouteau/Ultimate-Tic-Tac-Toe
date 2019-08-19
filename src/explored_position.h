@@ -19,7 +19,7 @@ struct alignas(8) ExploredPosition {
 	unsigned int depthBelow:5;
 	bool fullMoves:1;
 	unsigned int type:2;
-	bool myTurn:1;
+	bool player:1; // true if player is PLAYER_0
 	uint8_t bestMove:7; // we can't put a Move here, it would use 8 bits
 } __attribute__((packed));
 
@@ -30,7 +30,7 @@ std::ostream& operator<<(std::ostream& os, const ExploredPosition& that) {
 	std::cerr << that.value << ',';
 	os << std::bitset<8*sizeof(hash_t)>(that.otherHash) << ',';
 	os << 'D' << (int) that.depthBelow << ',';
-	if (that.myTurn)
+	if (that.player)
 		os << "PLAYER_0" << ',';
 	else
 		os << "PLAYER_1" << ',';

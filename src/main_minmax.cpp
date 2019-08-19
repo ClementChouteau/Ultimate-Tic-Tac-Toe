@@ -33,7 +33,7 @@ double computeTimeBudget(double availableTimeInMs) {
 int main() {
 	std::ios::sync_with_stdio(false);
 
-	int myBot = PLAYER_0;
+	player_t myPlayer = PLAYER_0;
 
 	Move givenMoveGenerator;
 
@@ -56,7 +56,7 @@ int main() {
 			if (your_botid == "your_botid") {
 				char c;
 				ss >> c;
-				myBot = from_char(c);
+				myPlayer = from_char(c);
 			}
 			continue;
 		}
@@ -104,8 +104,7 @@ int main() {
 			int availableTimeInMs;
 			ss >> availableTimeInMs;
 
-            const auto myTurn = (myBot == PLAYER_0) ? true : false;
-			const auto bestMove = ai.play(board, myTurn, givenMoveGenerator, computeTimeBudget(availableTimeInMs));
+			const auto bestMove = ai.play(board, myPlayer, givenMoveGenerator, computeTimeBudget(availableTimeInMs));
 
 			outputMove(bestMove);
 		}
