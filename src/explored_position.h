@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <bitset>
 
-#include "common/score.h" // score_t
+#include "common/types.h"
 #include "zobrist.h" // hash_t
 
 enum ExploredPositionType {

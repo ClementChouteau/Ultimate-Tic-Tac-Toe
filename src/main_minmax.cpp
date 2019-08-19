@@ -40,7 +40,7 @@ int main() {
 	const Scoring scoring;
 	MinMaxBasedAI<TABLE_SIZE> ai(scoring);
 
-	Board board(&scoring);
+	Board board;
 
 	while (true) {
 		std::string line;
@@ -71,7 +71,7 @@ int main() {
 				std::string new_board;
 				ss >> new_board;
 
-				board = Board(&scoring, new_board);
+				board = Board(new_board);
 			}
 			else if (game == "game" && op[0] == 'm') {
 				givenMoveGenerator = Move::any;

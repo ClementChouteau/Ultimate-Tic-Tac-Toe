@@ -7,6 +7,7 @@
 
 #include "common/move.h"
 #include "common/board.h"
+#include "score.h"
 #include "transposition_table.h"
 
 #define MIN_DEPTH (1)
@@ -42,7 +43,7 @@ public:
 
         const auto dt = elapsedInMs();
         std::cerr << std::fixed
-            << "score: " << decodeDraw(board.score(scoring)) << ", best: " << bestMoveValued.value << ", elapsed : " << dt << " ms" << ", positions: " << exploredPositions << ", positions/s: " << exploredPositions/dt << std::endl
+            << "score: " << decodeDraw(scoring.score(board)) << ", best: " << bestMoveValued.value << ", elapsed : " << dt << " ms" << ", positions: " << exploredPositions << ", positions/s: " << exploredPositions/dt << std::endl
             << "choice D" << maxDepth << " (Y, X, y, x): " << bestMoveValued.move.Y() << ' ' << bestMoveValued.move.X() << ' ' << bestMoveValued.move.y() << ' ' << bestMoveValued.move.x() << std::endl
             << std::endl;
 
@@ -74,7 +75,7 @@ private:
         while (!isDraw(best.value) && std::abs(best.value) < GLOBAL_VICTORY0_SCORE-MAX_DEPTH) {
             previousExploredPositions = exploredPositions;
 
-            best = minmax(board, scoring, 0, maxDepth, startingPlayer, MIN_NEGATABLE_SCORE, MAX_NEGATABLE_SCORE);
+            best = minmax(board, 0, maxDepth, startingPlayer, MIN_NEGATABLE_SCORE, MAX_NEGATABLE_SCORE);
 
             printStatistics();
 
@@ -97,7 +98,7 @@ private:
             << ", use%: " << usageRatio << std::endl;
     }
 
-    MoveValued minmax(Board& board, const Scoring& scoring, int depth, int maxDepth, player_t player, score_t A, score_t B) {
+    MoveValued minmax(Board& board, int depth, int maxDepth, player_t player, score_t A, score_t B) {
         exploredPositions++;
 
         if (exploredPositions % TIME_CHECK_EVERY_N_POSITIONS == 0) {
@@ -109,8 +110,8 @@ private:
         ExploredPositionType type = ExploredPositionType::UPPER;
         MoveValued best = {Move::end, -GLOBAL_VICTORY0_SCORE-1};
 
-        if (board.winnerOrDraw() != NONE || depth == maxDepth) {
-            const auto score = board.score(scoring);
+        if (board.winner() != NONE || depth == maxDepth) {
+            const auto score = scoring.score(board);
 
             if (isDraw(score))
                 best.value = score;
@@ -208,7 +209,7 @@ private:
 
                 MoveValued current;
                 try {
-                    current = minmax(board, scoring, depth+1, maxDepth, OTHER(player), -B, -A);
+                    current = minmax(board, depth+1, maxDepth, OTHER(player), -B, -A);
                 }
                 catch (int) { board.cancel(); throw; }
 

@@ -8,9 +8,9 @@
 
 #include <cstring>
 
-#include "score.h"
 #include "move.h"
-#include "global_score.h"
+#include "ttt.h"
+#include "ttt_utils.h"
 
 #define AT_9(s, y, x) (s[y*3 + x])
 #define AT_9m(s, m) (s[((Move) m).j/9])
@@ -24,14 +24,14 @@ struct State {
 
 class Board {
 public:
-	Board(const Scoring* given_scoring) : scoring(given_scoring) {
+	Board() {
 		state.board = {EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT};
 		state.macro_board = EMPTY_TTT;
 		state.winner = NONE;
 		state.nones_sum = 9*9;
 	 }
 
-	Board(const Scoring* given_scoring, const std::string& in) : Board(given_scoring) {
+	Board(const std::string& in) : Board() {
 		int cpt = 0;
 
 		for (int Y = 0; Y < 3; Y++)
@@ -53,7 +53,7 @@ public:
 				state.nones_sum -= nones(ttt);
 			}
 
-			ttt = normalize(scoring, ttt);
+			ttt = normalize(ttt);
 		}
 
 		state.macro_board = macroBoardFromBoard();
@@ -83,11 +83,11 @@ public:
 	}
 
 	inline bool isWonOrFull_d(uint8_t m) const {
-		return scoring->score(state.board[m], PLAYER_0) == VICTORY_POINTS || scoring->score(state.board[m], PLAYER_1) == VICTORY_POINTS || nones(state.board[m]) == 0;
+		return win(state.board[m], PLAYER_0) || win(state.board[m], PLAYER_1) || nones(state.board[m]) == 0;
 	}
 
 	inline bool isWonOrFull(Move m) const {
-		return scoring->score(AT_9m(state.board, m), PLAYER_0) == VICTORY_POINTS || scoring->score(AT_9m(state.board, m), PLAYER_1) == VICTORY_POINTS || nones(AT_9m(state.board, m)) == 0;
+		return win(AT_9m(state.board, m), PLAYER_0) || win(AT_9m(state.board, m), PLAYER_1) || nones(AT_9m(state.board, m)) == 0;
 	}
 
 	inline void possibleMoves(std::array<MoveValued, 9*9+1>& moves, const Move& moveGenerator) const {
@@ -119,13 +119,8 @@ public:
 				&& !isWonOrFull(move) && get(move) == NONE;
 	}
 
-	// name of winner in case of victory or draw, NONE otherwise
-	inline player_t winnerOrDraw() const {
-		if (state.winner != NONE)
-			return state.winner;
-		if (state.nones_sum == 0)
-			return DRAW;
-		return NONE;
+	inline player_t winner() const {
+		return state.winner;
 	}
 
 	void action(const Move& move, player_t player) {
@@ -137,14 +132,14 @@ public:
 		set_ttt_int(ttt, move.j%9, player);
 		const auto nones_to_remove = nones(ttt);
 
-		ttt = normalize(scoring, ttt);
+		ttt = normalize(ttt);
 
 		state.nones_sum--; // one none was removed of the ttt
 
 		// macro board update if necessary
-		if (scoring->score(ttt, PLAYER_0) == VICTORY_POINTS)
+		if (win(ttt, PLAYER_0))
 			set_ttt_int(state.macro_board, move.j/9, PLAYER_0);
-		else if (scoring->score(ttt, PLAYER_1) == VICTORY_POINTS)
+		else if (win(ttt, PLAYER_1))
 			set_ttt_int(state.macro_board, move.j/9, PLAYER_1);
 		else if (nones(ttt) == 0)
 			set_ttt_int(state.macro_board, move.j/9, DRAW);
@@ -154,9 +149,9 @@ public:
 		state.nones_sum -= nones_to_remove; // remove nones of the (now completed) ttt
 
 		// winner state update
-		if (scoring->score(state.macro_board, PLAYER_0) == VICTORY_POINTS)
+		if (win(state.macro_board, PLAYER_0))
 			state.winner = PLAYER_0;
-		else if (scoring->score(state.macro_board, PLAYER_1) == VICTORY_POINTS)
+		else if (win(state.macro_board, PLAYER_1))
 			state.winner = PLAYER_1;
 		else if (state.nones_sum == 0)
 			state.winner = DRAW;
@@ -166,14 +161,8 @@ public:
 		state = actions[--actions_size];
 	}
 
-	inline score_t score(const Scoring& scoring) const {
-		if (state.winner == NONE)
-			return _score(scoring);
-
-		// we remove the explored depth to the score to choose closest victory (or farthest defeat)
-		else if (state.winner == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - actions_size);
-		else if (state.winner == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - actions_size);
-		else if (state.winner == DRAW) return DRAW_SCORE; // draw
+	inline int actionsSize() const {
+		return actions_size;
 	}
 
 	const std::array<ttt_t, 9>& getBoard() const {
@@ -183,24 +172,6 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, const Board& that);
 
 private:
-	__attribute__((optimize("unroll-loops")))
-	score_t _score(const Scoring& scoring) const {
-		float s = 0;
-
-		for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-			const float s00 = scoring.score(state.board[std::get<0>(line)], PLAYER_0);
-			const float s01 = scoring.score(state.board[std::get<0>(line)], PLAYER_1);
-			const float s10 = scoring.score(state.board[std::get<1>(line)], PLAYER_0);
-			const float s11 = scoring.score(state.board[std::get<1>(line)], PLAYER_1);
-			const float s20 = scoring.score(state.board[std::get<2>(line)], PLAYER_0);
-			const float s21 = scoring.score(state.board[std::get<2>(line)], PLAYER_1);
-
-			s += (s00 / (s00 + s01)) * 15 * (s10 / (s10 + s11)) * 15 * (s20 / (s20 + s21)) * 15;
-		}
-
-		return s;
-	}
-
 	int macroBoardFromBoard() const {
 		auto macro_board = EMPTY_TTT;
 
@@ -223,7 +194,6 @@ private:
 
 private:
 	State state;
-	const Scoring* scoring;
 
 	int actions_size = 0;
 	std::array<State, 9*9> actions;

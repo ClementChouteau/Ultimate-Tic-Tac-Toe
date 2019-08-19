@@ -7,8 +7,10 @@
 #include <climits>
 #include <cassert>
 
-#include "types.h"
-#include "ttt.h"
+#include "common/types.h"
+#include "common/ttt_utils.h"
+#include "common/global_score.h"
+#include "common/board.h"
 
 #define VICTORY_POINTS (15)
 
@@ -23,6 +25,16 @@ public:
 
 	inline score_t score(ttt_t ttt, player_t player) const {
 		return _score[2*ttt+player-1];
+	}
+
+	inline score_t score(const Board& board) const {
+		if (board.winner() == NONE)
+			return _board_score(board.getBoard());
+
+		// we remove the explored depth to the score to choose closest victory (or farthest defeat)
+		else if (board.winner() == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - board.actionsSize());
+		else if (board.winner() == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - board.actionsSize());
+		else if (board.winner() == DRAW) return DRAW_SCORE;
 	}
 
 private:
@@ -56,34 +68,25 @@ private:
 		}
 	}
 
+	__attribute__((optimize("unroll-loops")))
+	score_t _board_score(const std::array<ttt_t, 9>& board) const {
+		float s = 0;
+
+		for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
+			const float s00 = score(board[std::get<0>(line)], PLAYER_0);
+			const float s01 = score(board[std::get<0>(line)], PLAYER_1);
+			const float s10 = score(board[std::get<1>(line)], PLAYER_0);
+			const float s11 = score(board[std::get<1>(line)], PLAYER_1);
+			const float s20 = score(board[std::get<2>(line)], PLAYER_0);
+			const float s21 = score(board[std::get<2>(line)], PLAYER_1);
+
+			s += (s00 / (s00 + s01)) * 15 * (s10 / (s10 + s11)) * 15 * (s20 / (s20 + s21)) * 15;
+		}
+
+		return s;
+	}
+
 private:
 	std::array<score_t, 2*NUMBER_OF_TTT> _score;
 };
 
-/// ttt that are (won/lost/draw) are each transformed into one unique ttt
-/// this is allow us to remember more positions in the table
-inline ttt_t normalize(const Scoring* scoring, ttt_t ttt) {
-	// 0 0 0
-	// 0 0 0
-	// 0 0 0
-	const auto WON0_TTT = BIT0_IN_EACH;
-
-	// 1 1 1
-	// 1 1 1
-	// 1 1 1
-	const auto WON1_TTT = BIT1_IN_EACH;
-
-	// 0 0 1
-	// 1 1 0
-	// 0 1 0
-	const auto DRAW_TTT = 0b010110101001011001;
-
-	if (scoring->score(ttt, PLAYER_0) == VICTORY_POINTS)
-		return WON0_TTT;
-	if (scoring->score(ttt, PLAYER_1) == VICTORY_POINTS)
-		return WON1_TTT;
-	if (nones(ttt) == 0)
-		return DRAW_TTT;
-
-	return ttt;
-}

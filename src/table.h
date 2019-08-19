@@ -9,7 +9,7 @@
 #include <cstdint>
 
 #include "zobrist.h"
-#include "score.h"
+#include "types.h"
 #include "move.h"
 
 #define TABLE_SIZE (1 << 24)

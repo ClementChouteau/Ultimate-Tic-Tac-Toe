@@ -9,7 +9,6 @@
 
 #include "explored_position.h"
 #include "zobrist.h"
-#include "common/score.h"
 #include "common/move.h"
 
 struct Hashers {
