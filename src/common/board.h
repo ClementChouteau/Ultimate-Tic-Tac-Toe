@@ -7,34 +7,15 @@
 #include <tuple>
 
 #include <cstring>
-#include <climits>
 
 #include "score.h"
 #include "move.h"
+#include "global_score.h"
 
 #define CURRENT(myTurn) ((myTurn) ? PLAYER_0 : PLAYER_1)
 
-#define EMPTY_SCORE {0, 0, 0, 0, 0, 0, 0, 0, 0}
 #define AT_9(s, y, x) (s[y*3 + x])
 #define AT_9m(s, m) (s[((Move) m).j/9])
-
-// int16_t ranges from -32768 to +32767
-#define MAX_NEGATABLE_SCORE (std::numeric_limits<score_t>::max()) // used to initialize the score to an impossible value
-#define MIN_NEGATABLE_SCORE (-MAX_NEGATABLE_SCORE) // used to initialize the score to an impossible value
-#define GLOBAL_VICTORY0_SCORE (MAX_NEGATABLE_SCORE-1) // score of won board at depth 0
-#define DRAW_SCORE (std::numeric_limits<score_t>::min()) // draw is coded as one separate value
-
-inline bool isDraw(score_t score) {
-	return score == DRAW_SCORE;
-}
-
-inline score_t decodeDraw(score_t score) {
-	if (score == DRAW_SCORE) {
-		return 0;
-	}
-
-	return score;
-}
 
 struct State {
 	std::array<ttt_t, 9> board;
