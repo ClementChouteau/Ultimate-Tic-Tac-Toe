@@ -1,5 +1,5 @@
 settings player_names player0,player1
-settings your_bot player0
+settings your_bot player1
 settings timebank 10000
 settings time_per_move 100
 settings your_botid 1
