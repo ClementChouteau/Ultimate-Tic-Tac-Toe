@@ -80,7 +80,9 @@ private:
 			const float s20 = score(board[std::get<2>(line)], PLAYER_0);
 			const float s21 = score(board[std::get<2>(line)], PLAYER_1);
 
-			s += (s00 / (s00 + s01)) * 15 * (s10 / (s10 + s11)) * 15 * (s20 / (s20 + s21)) * 15;
+			const float s0 = (s00 / (s00 + s01)) * 15 * (s10 / (s10 + s11)) * 15 * (s20 / (s20 + s21)) * 15;
+			const float s1 = (s01 / (s01 + s00)) * 15 * (s11 / (s11 + s10)) * 15 * (s21 / (s21 + s20)) * 15;
+			s += s0 - s1;
 		}
 
 		return s;
