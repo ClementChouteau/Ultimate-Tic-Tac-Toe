@@ -68,24 +68,30 @@ private:
 		}
 	}
 
-	__attribute__((optimize("unroll-loops")))
 	score_t _board_score(const std::array<ttt_t, 9>& board) const {
 		float s = 0;
 
-		for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-			const float s00 = score(board[std::get<0>(line)], PLAYER_0);
-			const float s01 = score(board[std::get<0>(line)], PLAYER_1);
-			const float s10 = score(board[std::get<1>(line)], PLAYER_0);
-			const float s11 = score(board[std::get<1>(line)], PLAYER_1);
-			const float s20 = score(board[std::get<2>(line)], PLAYER_0);
-			const float s21 = score(board[std::get<2>(line)], PLAYER_1);
-
-			const float s0 = (s00 / (s00 + s01)) * 15 * (s10 / (s10 + s11)) * 15 * (s20 / (s20 + s21)) * 15;
-			const float s1 = (s01 / (s01 + s00)) * 15 * (s11 / (s11 + s10)) * 15 * (s21 / (s21 + s20)) * 15;
-			s += s0 - s1;
-		}
+		s += _line_score(board, ttt_possible_lines[0]);
+		s += _line_score(board, ttt_possible_lines[1]);
+		s += _line_score(board, ttt_possible_lines[2]);
+		s += _line_score(board, ttt_possible_lines[3]);
+		s += _line_score(board, ttt_possible_lines[4]);
+		s += _line_score(board, ttt_possible_lines[5]);
+		s += _line_score(board, ttt_possible_lines[6]);
+		s += _line_score(board, ttt_possible_lines[7]);
 
 		return s;
+	}
+
+	inline float _line_score(const std::array<ttt_t, 9>& board, const std::tuple<int, int, int> line) const {
+		const float s00 = score(board[std::get<0>(line)], PLAYER_0);
+		const float s01 = score(board[std::get<0>(line)], PLAYER_1);
+		const float s10 = score(board[std::get<1>(line)], PLAYER_0);
+		const float s11 = score(board[std::get<1>(line)], PLAYER_1);
+		const float s20 = score(board[std::get<2>(line)], PLAYER_0);
+		const float s21 = score(board[std::get<2>(line)], PLAYER_1);
+
+		return (((s00 * s10 * s20) - (s01 * s11 * s21)) / ((s00 + s01) * (s10 + s11) * (s20 + s21))) * 15 * 15 * 15;
 	}
 
 private:
