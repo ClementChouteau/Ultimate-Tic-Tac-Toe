@@ -2,11 +2,13 @@ CXXFLAGS = -Wall -O2 -mpopcnt -std=c++11
 
 .PHONY: test report clean
 
-all: minmax mcts
+all: minmax mcts random
 
 minmax: bin/minmax
 
 mcts: bin/mcts
+
+random: bin/random
 
 bin/minmax: src/*
 	g++ ${CXXFLAGS} src/main_minmax.cpp -o bin/main_minmax
@@ -14,9 +16,13 @@ bin/minmax: src/*
 bin/mcts: src/*
 	g++ ${CXXFLAGS} src/main_mcts.cpp -o bin/main_mcts
 
+bin/random: src/*
+	g++ ${CXXFLAGS} src/main_random.cpp -o bin/main_random
+
 test: all
 	./bin/main_minmax < in/test.in
 	./bin/main_mcts < in/test.in
+	./bin/main_random < in/test.in
 
 report: minmax
 	python evaluator.py ./bin/main_minmax --bench
