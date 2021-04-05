@@ -5,6 +5,7 @@ project(UltimateTicTacToe)
 set(CMAKE_CXX_STANDARD 11)
 
 include_directories(PRIVATE src)
+include_directories(SYSTEM src/third_party)
 
 add_executable(main_minmax src/main_minmax.cpp)
 add_executable(main_random src/main_random.cpp)

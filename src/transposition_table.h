@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <ostream>
 
-#include "libs/wyhash.h"
+#include "wyhash/wyhash.h"
 
 #include "explored_position.h"
 #include "zobrist.h"
