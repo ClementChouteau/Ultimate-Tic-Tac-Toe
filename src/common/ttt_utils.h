@@ -97,10 +97,6 @@ inline bool winnable(ttt_t ttt, Owner player) {
 	;
 }
 
-inline bool draw(ttt_t ttt) {
-	return !winnable(ttt, Owner::Player0) && !winnable(ttt, Owner::Player1);
-}
-
 inline score_t number_of_blockages(ttt_t ttt, player_t player) {
 	score_t blockages = 0;
 
