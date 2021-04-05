@@ -121,27 +121,27 @@ inline score_t number_of_blockages(ttt_t ttt, player_t player) {
 /// ttt that are (won/lost/draw) are each transformed into one unique ttt
 /// this is allow us to remember more positions in the table
 inline ttt_t normalize(ttt_t ttt) {
-	// 0 0 0
-	// 0 0 0
-	// 0 0 0
-	const auto WON0_TTT = BIT0_IN_EACH;
-
-	// 1 1 1
-	// 1 1 1
-	// 1 1 1
-	const auto WON1_TTT = BIT1_IN_EACH;
-
-	// 0 0 1
-	// 1 1 0
-	// 0 1 0
-	const auto DRAW_TTT = 0b010110101001011001;
-
 	if (win(ttt, Owner::Player0))
-		return WON0_TTT;
+  {
+    // 0 0 0
+    // 0 0 0
+    // 0 0 0
+    return BIT0_IN_EACH;
+  }
 	if (win(ttt, Owner::Player1))
-		return WON1_TTT;
+  {
+    // 1 1 1
+    // 1 1 1
+    // 1 1 1
+    return BIT1_IN_EACH;
+  }
 	if (nones(ttt) == 0)
-		return DRAW_TTT;
+  {
+    // 0 0 1
+    // 1 1 0
+    // 0 1 0
+    return 0b010110101001011001; // Any drawn ttt is valid, but we need to choose one
+  }
 
 	return ttt;
 }
