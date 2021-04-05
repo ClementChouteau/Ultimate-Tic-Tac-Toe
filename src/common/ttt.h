@@ -108,9 +108,3 @@ constexpr ttt_t LINES_OF_PLAYER0[] = {
 	0b010000000100000001,
 	0b000001000100010000,
 };
-
-/// returns ttt where positions 0b11 (Owner::Draw) are transformed in 0b00 (Owner::None)
-inline ttt_t remove_owner(ttt_t ttt) {
-	return (ttt & (~(ttt << 1) & BIT1_IN_EACH))
-	     | (ttt & (~(ttt >> 1) & BIT0_IN_EACH));
-}
