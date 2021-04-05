@@ -2,6 +2,7 @@
 
 #include <array>
 #include <tuple>
+#include <cmath>
 
 #include "types.h"
 
