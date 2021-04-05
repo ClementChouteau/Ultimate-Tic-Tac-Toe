@@ -31,3 +31,7 @@ and uses this to compute the score of the complete board.
 ### Performance
 
 The minmax algorithm can evaluate **13M positions/s** on a single CPU core.
+
+## Acknowledgement
+
+[Nicolas Derumigny](https://github.com/NicolasDerumigny) helped with some low-level performance tricks.
