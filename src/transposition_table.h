@@ -54,7 +54,7 @@ public:
 		const auto h1 = pos_hash<1>(board, encodePlayerAsBool(player), fullMoves, mov);
 
 		{
-			const auto* ptr0 = &positions[h0%CAPACITY];
+      const auto* ptr0 = &positions[h0%CAPACITY];
 			const auto& p0 = *ptr0;
 			if (p0.otherHash == h1 && p0.player == encodePlayerAsBool(player)
 					&& p0.fullMoves == fullMoves
@@ -64,8 +64,8 @@ public:
 			}
 		}
 		{
-			const auto ptr1 = &positions[h1%CAPACITY];
-			const auto p1 = *ptr1;
+      const auto* ptr1 = &positions[h1%CAPACITY];
+			const auto& p1 = *ptr1;
 			if (p1.otherHash == h0 && p1.player == encodePlayerAsBool(player)
 					&& p1.fullMoves == fullMoves
 					&& (fullMoves || Move(p1.bestMove).YX() == mov)) {
