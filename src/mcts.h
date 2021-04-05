@@ -5,6 +5,7 @@
 #include <memory>
 #include <queue>
 #include <cmath>
+#include <algorithm>
 
 #include "common/board.h"
 #include "common/move.h"
