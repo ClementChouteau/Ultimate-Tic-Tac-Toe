@@ -27,7 +27,7 @@ public:
 	Board() {
 		state.board = {EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT, EMPTY_TTT};
 		state.macro_board = EMPTY_TTT;
-		state.winner = NONE;
+		state.winner = Owner::None;
 		state.nones_sum = 9*9;
 	 }
 
@@ -40,7 +40,7 @@ public:
 		for (int x = 0; x < 3; x++) {
 			if (in[cpt] == ',') cpt++;
 			set_ttt_int(get_ttt(Y, X), y, x, from_char(in[cpt++]));
-			if (get_ttt_int(get_ttt(Y, X), y, x) != NONE) {
+			if (get_ttt_int(get_ttt(Y, X), y, x) != Owner::None) {
 				state.nones_sum--;
 			}
 		}
@@ -49,7 +49,7 @@ public:
 		for (int X = 0; X < 3; X++) {
 			auto& ttt = get_ttt(Y, X);
 
-			if (win(ttt, PLAYER_0) || win(ttt, PLAYER_1)) {
+			if (win(ttt, Owner::Player0) || win(ttt, Owner::Player1)) {
 				state.nones_sum -= nones(ttt);
 			}
 
@@ -58,12 +58,12 @@ public:
 
 		state.macro_board = macroBoardFromBoard();
 
-		if (win(state.macro_board, PLAYER_0))
-			state.winner = PLAYER_0;
-		if (win(state.macro_board, PLAYER_1))
-			state.winner = PLAYER_1;
+		if (win(state.macro_board, Owner::Player0))
+			state.winner = Owner::Player0;
+		if (win(state.macro_board, Owner::Player1))
+			state.winner = Owner::Player1;
 		if (state.nones_sum == 0)
-			state.winner = DRAW;
+			state.winner = Owner::Draw;
 	}
 
 	inline ttt_t get(const Move& move) const {
@@ -83,11 +83,11 @@ public:
 	}
 
 	inline bool isWonOrFull_d(uint8_t m) const {
-		return win(state.board[m], PLAYER_0) || win(state.board[m], PLAYER_1) || nones(state.board[m]) == 0;
+		return win(state.board[m], Owner::Player0) || win(state.board[m], Owner::Player1) || nones(state.board[m]) == 0;
 	}
 
 	inline bool isWonOrFull(Move m) const {
-		return win(AT_9m(state.board, m), PLAYER_0) || win(AT_9m(state.board, m), PLAYER_1) || nones(AT_9m(state.board, m)) == 0;
+		return win(AT_9m(state.board, m), Owner::Player0) || win(AT_9m(state.board, m), Owner::Player1) || nones(AT_9m(state.board, m)) == 0;
 	}
 
 	inline void possibleMoves(std::array<MoveValued, 9*9+1>& moves, const Move& moveGenerator) const {
@@ -96,7 +96,7 @@ public:
 			uint8_t mov = moveGenerator.j%9;
 
 			for (uint8_t m = 0; m < 9; m++) {
-				if (get(mov, m) == NONE) {
+				if (get(mov, m) == Owner::None) {
 					moves[cnt].move = (Move) (mov*9 + m);
 					cnt++;
 				}
@@ -105,7 +105,7 @@ public:
 			for(uint8_t m=0; m<9; ++m)
 				if (!isWonOrFull_d(m)){
 					for (uint8_t save = 0; save<9; save++)
-						if (get(m, save) == NONE) {
+						if (get(m, save) == Owner::None) {
 							moves[cnt].move = (Move) (m*9 + save);
 							cnt++;
 						}
@@ -116,7 +116,7 @@ public:
 
 	inline bool isValidMove(Move lastMove, Move move) const {
 		return (lastMove == Move::any || (lastMove.y() == move.Y() && lastMove.x() == move.X()))
-				&& !isWonOrFull(move) && get(move) == NONE;
+				&& !isWonOrFull(move) && get(move) == Owner::None;
 	}
 
 	inline player_t winner() const {
@@ -137,24 +137,24 @@ public:
 		state.nones_sum--; // one none was removed of the ttt
 
 		// macro board update if necessary
-		if (win(ttt, PLAYER_0))
-			set_ttt_int(state.macro_board, move.j/9, PLAYER_0);
-		else if (win(ttt, PLAYER_1))
-			set_ttt_int(state.macro_board, move.j/9, PLAYER_1);
+		if (win(ttt, Owner::Player0))
+			set_ttt_int(state.macro_board, move.j/9, Owner::Player0);
+		else if (win(ttt, Owner::Player1))
+			set_ttt_int(state.macro_board, move.j/9, Owner::Player1);
 		else if (nones(ttt) == 0)
-			set_ttt_int(state.macro_board, move.j/9, DRAW);
+			set_ttt_int(state.macro_board, move.j/9, Owner::Draw);
 		else
 			return; // no winner state update needed
 
 		state.nones_sum -= nones_to_remove; // remove nones of the (now completed) ttt
 
 		// winner state update
-		if (win(state.macro_board, PLAYER_0))
-			state.winner = PLAYER_0;
-		else if (win(state.macro_board, PLAYER_1))
-			state.winner = PLAYER_1;
+		if (win(state.macro_board, Owner::Player0))
+			state.winner = Owner::Player0;
+		else if (win(state.macro_board, Owner::Player1))
+			state.winner = Owner::Player1;
 		else if (state.nones_sum == 0)
-			state.winner = DRAW;
+			state.winner = Owner::Draw;
 	}
 
 	void cancel() {
@@ -179,14 +179,14 @@ private:
 		{
 			const auto ttt = state.board[i];
 
-			if (win(ttt, PLAYER_0))
-				set_ttt_int(macro_board, i, PLAYER_0);
+			if (win(ttt, Owner::Player0))
+				set_ttt_int(macro_board, i, Owner::Player0);
 
-			else if (win(ttt, PLAYER_1))
-				set_ttt_int(macro_board, i, PLAYER_1);
+			else if (win(ttt, Owner::Player1))
+				set_ttt_int(macro_board, i, Owner::Player1);
 
 			else if (nones(ttt) == 0)
-				set_ttt_int(macro_board, i, DRAW);
+				set_ttt_int(macro_board, i, Owner::Draw);
 		}
 
 		return macro_board;
@@ -217,13 +217,13 @@ std::ostream& operator<<(std::ostream& os, const Board& that) {
 	std::cerr << "winner: ";
 
 	switch (that.state.winner) {
-	case NONE:
+	case Owner::None:
 		std::cerr << "NONE" << std::endl; break;
-	case PLAYER_0:
+	case Owner::Player0:
 		std::cerr << "PLAYER_0" << std::endl; break;
-	case PLAYER_1:
+	case Owner::Player1:
 		std::cerr << "PLAYER_1" << std::endl; break;
-	case DRAW:
+	case Owner::Draw:
 		std::cerr << "DRAW" << std::endl; break;
 	}
 

@@ -18,8 +18,8 @@ class Scoring {
 public:
 	Scoring() {
 		for (ttt_t ttt = 0; ttt < NUMBER_OF_TTT; ttt++) {
-			_score[2*ttt+PLAYER_0-1] = _compute_score(ttt, PLAYER_0);
-			_score[2*ttt+PLAYER_1-1] = _compute_score(ttt, PLAYER_1);
+			_score[2*ttt+Owner::Player0-1] = _compute_score(ttt, Owner::Player0);
+			_score[2*ttt+Owner::Player1-1] = _compute_score(ttt, Owner::Player1);
 		}
 	}
 
@@ -28,17 +28,17 @@ public:
 	}
 
 	inline score_t score(const Board& board) const {
-		if (board.winner() == NONE)
+		if (board.winner() == Owner::None)
 			return _board_score(board.getBoard());
 
 		// we remove the explored depth to the score to choose closest victory (or farthest defeat)
-		else if (board.winner() == PLAYER_0) return +(GLOBAL_VICTORY0_SCORE - board.actionsSize());
-		else if (board.winner() == PLAYER_1) return -(GLOBAL_VICTORY0_SCORE - board.actionsSize());
-		else if (board.winner() == DRAW) return DRAW_SCORE;
+		else if (board.winner() == Owner::Player0) return +(GLOBAL_VICTORY0_SCORE - board.actionsSize());
+		else if (board.winner() == Owner::Player1) return -(GLOBAL_VICTORY0_SCORE - board.actionsSize());
+		else if (board.winner() == Owner::Draw) return DRAW_SCORE;
 	}
 
 private:
-	score_t _compute_score(ttt_t ttt, player_t player) const {
+	score_t _compute_score(ttt_t ttt, Owner player) const {
 		// victory
 		if (win(ttt, player)) return VICTORY_POINTS;
 		if (win(ttt, OTHER(player))) return 0;
@@ -84,12 +84,12 @@ private:
 	}
 
 	inline float _line_score(const std::array<ttt_t, 9>& board, const std::tuple<int, int, int> line) const {
-		const float s00 = score(board[std::get<0>(line)], PLAYER_0);
-		const float s01 = score(board[std::get<0>(line)], PLAYER_1);
-		const float s10 = score(board[std::get<1>(line)], PLAYER_0);
-		const float s11 = score(board[std::get<1>(line)], PLAYER_1);
-		const float s20 = score(board[std::get<2>(line)], PLAYER_0);
-		const float s21 = score(board[std::get<2>(line)], PLAYER_1);
+		const float s00 = score(board[std::get<0>(line)], Owner::Player0);
+		const float s01 = score(board[std::get<0>(line)], Owner::Player1);
+		const float s10 = score(board[std::get<1>(line)], Owner::Player0);
+		const float s11 = score(board[std::get<1>(line)], Owner::Player1);
+		const float s20 = score(board[std::get<2>(line)], Owner::Player0);
+		const float s21 = score(board[std::get<2>(line)], Owner::Player1);
 
 		return (((s00 * s10 * s20) - (s01 * s11 * s21)) / ((s00 + s01) * (s10 + s11) * (s20 + s21))) * 15 * 15 * 15;
 	}

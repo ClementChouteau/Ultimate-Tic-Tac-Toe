@@ -12,11 +12,11 @@ inline bool win(ttt_t ttt, player_t player) {
 	return precomputedWin.isWon(ttt, player);
 }
 
-inline ttt_t transform_adversary_to_draw(ttt_t ttt, player_t player) {
-	if (player == PLAYER_0) {
+inline ttt_t transform_adversary_to_owner(ttt_t ttt, Owner player) {
+	if (player == Owner::Player0) {
 		return ttt | (BIT0_IN_EACH & (~ttt & (ttt >> 1)));
 	}
-	if (player == PLAYER_1) {
+	if (player == Owner::Player1) {
 		return ttt | (BIT1_IN_EACH & (~ttt & (ttt << 1)));
 	}
 	return ttt;
@@ -29,7 +29,7 @@ score_t number_of_ways_to_win(ttt_t ttt, player_t player) {
 	{
 		const auto c = get_ttt_int(ttt, i);
 
-		if (get_ttt_int(ttt, i) != NONE) continue;
+		if (get_ttt_int(ttt, i) != static_cast<player_t>(Owner::None)) continue;
 
 		set_ttt_int(ttt, i, player);
 		if (win(ttt, player)) wins++;
@@ -49,9 +49,9 @@ score_t number_of_threats(ttt_t ttt, player_t player) {
 		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
 
 		if ((c0 == player || c1 == player || c2 == player)
-				&& (c0 == player || c0 == NONE)
-				&& (c1 == player || c1 == NONE)
-				&& (c2 == player || c2 == NONE))
+				&& (c0 == player || c0 == static_cast<player_t>(Owner::None))
+				&& (c1 == player || c1 == static_cast<player_t>(Owner::None))
+				&& (c2 == player || c2 == static_cast<player_t>(Owner::None)))
 			threats++;
 	}
 
@@ -67,23 +67,23 @@ score_t number_of_unique_threats(ttt_t ttt, player_t player) {
 		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
 
 		if ((c0 == player || c1 == player || c2 == player)
-				&& (c0 == player || c0 == NONE)
-				&& (c1 == player || c1 == NONE)
-				&& (c2 == player || c2 == NONE))
+				&& (c0 == player || c0 == Owner::None)
+				&& (c1 == player || c1 == Owner::None)
+				&& (c2 == player || c2 == Owner::None))
 		{
 			threats++;
 
-			if (c0 == NONE) set_ttt_int(ttt, std::get<0>(line), DRAW);
-			if (c1 == NONE) set_ttt_int(ttt, std::get<1>(line), DRAW);
-			if (c2 == NONE) set_ttt_int(ttt, std::get<2>(line), DRAW);
+			if (c0 == Owner::None) set_ttt_int(ttt, std::get<0>(line), Owner::Draw);
+			if (c1 == Owner::None) set_ttt_int(ttt, std::get<1>(line), Owner::Draw);
+			if (c2 == Owner::None) set_ttt_int(ttt, std::get<2>(line), Owner::Draw);
 		}
 	}
 
 	return threats;
 }
 
-inline bool winnable(ttt_t ttt, player_t player) {
-	ttt = transform_adversary_to_draw(ttt, player);
+inline bool winnable(ttt_t ttt, Owner player) {
+	ttt = transform_adversary_to_owner(ttt, player);
 
 	return
 		((__builtin_popcount(ttt & LINES_OF_PLAYER0[0]) == 0) || (__builtin_popcount(ttt & (LINES_OF_PLAYER0[0] << 1)) == 0)) ||
@@ -98,7 +98,7 @@ inline bool winnable(ttt_t ttt, player_t player) {
 }
 
 inline bool draw(ttt_t ttt) {
-	return !winnable(ttt, PLAYER_0) && !winnable(ttt, PLAYER_1);
+	return !winnable(ttt, Owner::Player0) && !winnable(ttt, Owner::Player1);
 }
 
 inline score_t number_of_blockages(ttt_t ttt, player_t player) {
@@ -109,7 +109,7 @@ inline score_t number_of_blockages(ttt_t ttt, player_t player) {
 		const auto c1 = get_ttt_int(ttt, std::get<1>(line));
 		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
 
-		if (!(c0 == DRAW || c1 == DRAW || c2 == DRAW)
+		if (!(c0 == Owner::Draw || c1 == Owner::Draw || c2 == Owner::Draw)
 				&& (c0 == player || c1 == player || c2 == player)) {
 				blockages++;
 		}
@@ -136,9 +136,9 @@ inline ttt_t normalize(ttt_t ttt) {
 	// 0 1 0
 	const auto DRAW_TTT = 0b010110101001011001;
 
-	if (win(ttt, PLAYER_0))
+	if (win(ttt, Owner::Player0))
 		return WON0_TTT;
-	if (win(ttt, PLAYER_1))
+	if (win(ttt, Owner::Player1))
 		return WON1_TTT;
 	if (nones(ttt) == 0)
 		return DRAW_TTT;

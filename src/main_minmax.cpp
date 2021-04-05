@@ -33,7 +33,7 @@ double computeTimeBudget(double availableTimeInMs) {
 int main() {
 	std::ios::sync_with_stdio(false);
 
-	player_t myPlayer = PLAYER_0;
+	player_t myPlayer = Owner::Player0;
 
 	Move givenMoveGenerator;
 

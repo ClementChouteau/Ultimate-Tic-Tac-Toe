@@ -32,7 +32,7 @@ int main() {
 	std::ios::sync_with_stdio(false);
 
 	Board board;
-	int myBot = PLAYER_0;
+	int myBot = Owner::Player0;
 
 	Move givenMoveGenerator;
 
@@ -100,7 +100,7 @@ int main() {
 			int availableTimeInMs;
 			ss >> availableTimeInMs;
 
-            const auto myTurn = (myBot == PLAYER_0) ? true : false;
+            const auto myTurn = (myBot == Owner::Player0) ? true : false;
 			const auto bestMove = ai.play(board, myTurn, givenMoveGenerator, computeTimeBudget(availableTimeInMs));
 
 			outputMove(bestMove);

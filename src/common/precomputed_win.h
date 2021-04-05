@@ -9,8 +9,8 @@ class PrecomputedWin {
 public:
 	PrecomputedWin() {
 		for (ttt_t ttt = 0; ttt < NUMBER_OF_TTT; ttt++) {
-			_isWon[2*ttt + PLAYER_0-1] = _win(ttt, PLAYER_0);
-			_isWon[2*ttt + PLAYER_1-1] = _win(ttt, PLAYER_1);
+			_isWon[2*ttt + static_cast<player_t>(Owner::Player0)-1] = _win(ttt, static_cast<player_t>(Owner::Player0));
+			_isWon[2*ttt + static_cast<player_t>(Owner::Player1)-1] = _win(ttt, static_cast<player_t>(Owner::Player1));
 		}
 	}
 

@@ -19,7 +19,7 @@ struct alignas(8) ExploredPosition {
 	unsigned int depthBelow:5;
 	bool fullMoves:1;
 	unsigned int type:2;
-	bool player:1; // true if player is PLAYER_0
+	bool player:1; // true if player is Owner::Player0
 	uint8_t bestMove:7; // we can't put a Move here, it would use 8 bits
 } __attribute__((packed));
 

@@ -110,13 +110,13 @@ private:
         ExploredPositionType type = ExploredPositionType::UPPER;
         MoveValued best = {Move::end, -GLOBAL_VICTORY0_SCORE-1};
 
-        if (board.winner() != NONE || depth == maxDepth) {
+        if (board.winner() != Owner::None || depth == maxDepth) {
             const auto score = scoring.score(board);
 
             if (isDraw(score))
                 best.value = score;
             else
-                best.value = ((player == PLAYER_0) ? 1 : -1) * score;
+                best.value = ((player == Owner::Player0) ? 1 : -1) * score;
 
             return best; // no need to save this position
         }
@@ -190,7 +190,7 @@ private:
                         const auto ttt1 = board.get_ttt(mv.move.Y(), mv.move.X());
                         auto ttt2 = ttt1;
                         set_ttt_int(ttt2, mv.move.y(), mv.move.x(), player);
-                        mv.value = ((player == PLAYER_0) ? 1 : -1) * scoring.score(ttt2, player);
+                        mv.value = ((player == Owner::Player0) ? 1 : -1) * scoring.score(ttt2, player);
                     }
                 }
             }

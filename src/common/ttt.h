@@ -5,14 +5,16 @@
 
 #include "types.h"
 
-#define NONE ((player_t)0)
-#define PLAYER_0 ((player_t)1)
-#define PLAYER_1 ((player_t)2)
-// macro board only
-#define DRAW ((player_t)3)
+enum Owner : player_t
+{
+  None    = 0, // 0b00
+  Player0 = 1, // 0b01
+  Player1 = 2, // 0b10
+  Draw    = 3  // 0b11 (macro board only)
+};
 
 inline bool encodePlayerAsBool(player_t player) {
-	return player == PLAYER_0;
+	return player == static_cast<player_t>(Owner::Player0);
 }
 
 #define EMPTY_TTT ((ttt_t)0)
@@ -59,20 +61,20 @@ inline void set_ttt_int(ttt_t& ttt, int y, int x, int c) {
 
 inline char to_char(ttt_t t) {
 	switch (t) {
-	case NONE: return '.';
-	case PLAYER_0: return '0';
-	case PLAYER_1: return '1';
-	case DRAW: return 'X';
+	case static_cast<player_t>(Owner::None): return '.';
+	case static_cast<player_t>(Owner::Player0): return '0';
+	case static_cast<player_t>(Owner::Player1): return '1';
+	case static_cast<player_t>(Owner::Draw): return 'X';
 	}
 	return -1;
 }
 
 inline ttt_t from_char(char c) {
 	switch (c) {
-	case '.': return NONE;
-	case '0': return PLAYER_0;
-	case '1': return PLAYER_1;
-	case 'X': return DRAW;
+	case '.': return static_cast<player_t>(Owner::None);
+	case '0': return static_cast<player_t>(Owner::Player0);
+	case '1': return static_cast<player_t>(Owner::Player1);
+	case 'X': return static_cast<player_t>(Owner::Draw);
 	}
 	return -1;
 }
@@ -107,8 +109,8 @@ constexpr ttt_t LINES_OF_PLAYER0[] = {
 	0b000001000100010000,
 };
 
-/// returns ttt where positions 0b11 (DRAW) are transformed in 0b00 (NONE)
-inline ttt_t remove_draw(ttt_t ttt) {
+/// returns ttt where positions 0b11 (Owner::Draw) are transformed in 0b00 (Owner::None)
+inline ttt_t remove_owner(ttt_t ttt) {
 	return (ttt & (~(ttt << 1) & BIT1_IN_EACH))
 	     | (ttt & (~(ttt >> 1) & BIT0_IN_EACH));
 }
