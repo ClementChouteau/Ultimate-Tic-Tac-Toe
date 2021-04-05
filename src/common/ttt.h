@@ -80,6 +80,18 @@ inline ttt_t from_char(char c) {
 	return -1;
 }
 
+ttt_t from_string(const std::string& str)
+{
+  ttt_t ttt = EMPTY_TTT;
+  auto it = str.begin();
+  for (int c=0; c<9; ++c)
+  {
+    set_ttt_int(ttt, c, from_char(*it));
+    ++it;
+  }
+  return ttt;
+}
+
 void print_ttt(ttt_t ttt) {
 	for (int y = 0; y < 3; y++) {
 		for (int x = 0; x < 3; x++)
