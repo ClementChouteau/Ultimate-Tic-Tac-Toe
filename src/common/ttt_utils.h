@@ -40,24 +40,6 @@ score_t number_of_ways_to_win(ttt_t ttt, player_t player) {
 	return wins;
 }
 
-score_t number_of_threats(ttt_t ttt, player_t player) {
-	score_t threats = 0;
-
-	for (const std::tuple<int, int, int>& line : ttt_possible_lines) {
-		const auto c0 = get_ttt_int(ttt, std::get<0>(line));
-		const auto c1 = get_ttt_int(ttt, std::get<1>(line));
-		const auto c2 = get_ttt_int(ttt, std::get<2>(line));
-
-		if ((c0 == player || c1 == player || c2 == player)
-				&& (c0 == player || c0 == static_cast<player_t>(Owner::None))
-				&& (c1 == player || c1 == static_cast<player_t>(Owner::None))
-				&& (c2 == player || c2 == static_cast<player_t>(Owner::None)))
-			threats++;
-	}
-
-	return threats;
-}
-
 score_t number_of_unique_threats(ttt_t ttt, player_t player) {
 	score_t threats = 0;
 
