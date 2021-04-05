@@ -91,6 +91,7 @@ void print_ttt(ttt_t ttt) {
 constexpr ttt_t BIT0_IN_EACH = 0b010101010101010101;
 constexpr ttt_t BIT1_IN_EACH = 0b101010101010101010;
 
+// Number of Owner::None
 inline score_t nones(ttt_t ttt) {
 	ttt = ~ttt;
 	return __builtin_popcount((ttt >> 1) & ttt & BIT0_IN_EACH);
