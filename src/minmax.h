@@ -26,7 +26,6 @@ public:
     Move play(Board& board, player_t startingPlayer, const Move& givenMoveGenerator, double timeBudget) {
         start = std::chrono::steady_clock::now();
         this->timeBudget = timeBudget/1000.;
-        clearHistoryCuts();
         movesGenerator[0] = givenMoveGenerator;
 
         exploredPositions = 0;
@@ -51,15 +50,6 @@ public:
     }
 
 private:
-    void clearHistoryCuts() {
-    	for (int Y = 0; Y<9; Y++)
-    		for (int X = 0; X<9; X++)
-    		{
-    			historyCuts[Y][X][0] = 0.;
-    			historyCuts[Y][X][1] = 0.;
-    		}
-    }
-
     double elapsedInMs() const {
         const auto now = std::chrono::steady_clock::now();
         const auto dt = std::chrono::duration <double, std::ratio<1>> (now - start).count();
@@ -149,7 +139,6 @@ private:
                                     A = best.value;
                                     if (decodeDraw(A) >= decodeDraw(B)) { // alpha beta pruning
                                         type = ExploredPositionType::LOWER;
-                                        historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][encodePlayerAsBool(player)] += (double) (1 << 2*(maxDepth-depth));
                                         goto return_pos;
                                     }
                                 }
@@ -183,15 +172,10 @@ private:
 
                 // compute heuristic value for move ordering
                 else {
-                    if (maxDepth - depth >= 3) {
-                        mv.value = historyCuts[mv.move.Y()*3 + mv.move.y()][mv.move.X()*3 + mv.move.x()][encodePlayerAsBool(player)];
-                    }
-                    else {
-                        const auto ttt1 = board.get_ttt(mv.move.Y(), mv.move.X());
-                        auto ttt2 = ttt1;
-                        set_ttt_int(ttt2, mv.move.y(), mv.move.x(), player);
-                        mv.value = ((player == Owner::Player0) ? 1 : -1) * scoring.score(ttt2, player);
-                    }
+                    const auto ttt1 = board.get_ttt(mv.move.Y(), mv.move.X());
+                    auto ttt2 = ttt1;
+                    set_ttt_int(ttt2, mv.move.y(), mv.move.x(), player);
+                    mv.value = ((player == Owner::Player0) ? 1 : -1) * scoring.score(ttt2, player);
                 }
             }
 
@@ -229,7 +213,6 @@ private:
 
                         if (decodeDraw(A) >= decodeDraw(B)) { // alpha beta pruning
                             type = ExploredPositionType::LOWER;
-                            historyCuts[best.move.Y()*3 + best.move.y()][best.move.X()*3 + best.move.x()][encodePlayerAsBool(player)] += (double) (1 << 2*(maxDepth-depth));
                             break;
                         }
                     }
@@ -257,8 +240,6 @@ private:
 private:
     TranspositionTable<TableSize> ttable;
     const Scoring& scoring;
-
-    std::array< std::array< std::array<double, 2>, 9 >, 9 > historyCuts;
 
     // these are used to avoid allocations for the moves to explore
     std::array<Move, MAX_DEPTH+1> movesGenerator; // move of the previous level
