@@ -91,7 +91,7 @@ private:
 		const float s20 = score(board[std::get<2>(line)], Owner::Player0);
 		const float s21 = score(board[std::get<2>(line)], Owner::Player1);
 
-		return (((s00 * s10 * s20) - (s01 * s11 * s21)) / ((s00 + s01) * (s10 + s11) * (s20 + s21))) * 15 * 15 * 15;
+		return (s00 * s10 * s20) - (s01 * s11 * s21);
 	}
 
 private:
