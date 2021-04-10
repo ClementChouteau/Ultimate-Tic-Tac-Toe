@@ -8,11 +8,13 @@ import argparse
 from scipy import stats
 import re
 import random
+import multiprocessing
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--reverse', action='store_true')
 parser.add_argument('--verbose', action='store_true')
 parser.add_argument('--bench', action='store_true')
+parser.add_argument('-j', metavar='num_threads', type=int, default=1)
 args, _ = parser.parse_known_args()
 
 VERBOSE = True if args.verbose else False
@@ -195,27 +197,37 @@ def play_until_throw_gameover(players):
 		possible_moves = turn(players, players[1], board, possible_moves, round_number)
 		round_number += 1
 
-def one_game(statistics, player0, player1):
-	players = [player0, player1]
-	with Popen([players[0]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process0:
-		with Popen([players[1]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process1:
-			try:
-				players[0]['program'] = GameProgram(process0)
-				players[1]['program'] = GameProgram(process1)
-				play_until_throw_gameover(players)
+def one_game(queue, player0_path, player1_path):
+	reverse = False
+	while True:
+		player0 = initialized_player(sys.argv[1], "player_0", PLAYER0)
+		player1 = initialized_player(sys.argv[2], "player_1", PLAYER1)
 
-			except GameOver as game_over:
-				winner = game_over.get_winner()
-				statistics[winner] += 1
-				statistics_str = f'{statistics[PLAYER0]}, {statistics[PLAYER1]}, draw: {statistics[DRAW]}, '
-				if winner == DRAW:
-					print(statistics_str + 'game is draw')
-				else:
-					winner_name = players[0]['name'] if winner == players[0]['id'] else players[1]['name']
-					print(statistics_str + 'winner is : ' + winner_name + ' reason : ' + game_over.reason)
-			finally:
-					players[0]['program'].writeLines(['exit'])
-					players[1]['program'].writeLines(['exit'])
+		players = [player0, player1] if not reverse else [player1, player0]
+		with Popen([players[0]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process0:
+			with Popen([players[1]['path']], stdout=PIPE, stdin=PIPE, stderr=None if VERBOSE else DEVNULL) as process1:
+				try:
+					shouldStop = False
+					players[0]['program'] = GameProgram(process0)
+					players[1]['program'] = GameProgram(process1)
+					play_until_throw_gameover(players)
+
+				except GameOver as game_over:
+					winner = game_over.get_winner()
+					if winner == DRAW:
+						print('game is draw')
+					else:
+						winner_name = players[0]['name'] if winner == players[0]['id'] else players[1]['name']
+						print('winner is : ' + winner_name + ' reason : ' + game_over.reason)
+				except KeyboardInterrupt as e:
+					shouldStop = True
+				finally:
+						if shouldStop:
+							return
+						players[0]['program'].writeLines(['exit'])
+						players[1]['program'].writeLines(['exit'])
+						queue.put(winner)
+		reverse = not reverse
 
 def benchmark(player):
 		players = [player, player]
@@ -240,15 +252,15 @@ def benchmark(player):
 try:
 		if not args.bench:
 			statistics = {PLAYER0: 0, PLAYER1: 0, DRAW: 0}
-			while True:
-				players = [
-					initialized_player(sys.argv[1], "player_0", PLAYER0),
-					initialized_player(sys.argv[2], "player_1", PLAYER1),
-				]
+			queue = multiprocessing.Queue()
 
-				player0, player1 = (players[1], players[0]) if args.reverse else (players[0], players[1])
-				one_game(statistics, player0, player1)
-				args.reverse = not args.reverse # we need to permute players to remove start bias
+			for i in range(args.j):
+				multiprocessing.Process(target=one_game, args=(queue, sys.argv[1], sys.argv[2])).start()
+
+			while True:
+				winner = queue.get()
+				statistics[winner] += 1
+				print(statistics)
 		else:
 			results = []
 			for _ in range(20):
