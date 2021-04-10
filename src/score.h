@@ -69,18 +69,15 @@ private:
 	}
 
 	score_t _board_score(const std::array<ttt_t, 9>& board) const {
-		float s = 0;
-
-		s += _line_score(board, ttt_possible_lines[0]);
-		s += _line_score(board, ttt_possible_lines[1]);
-		s += _line_score(board, ttt_possible_lines[2]);
-		s += _line_score(board, ttt_possible_lines[3]);
-		s += _line_score(board, ttt_possible_lines[4]);
-		s += _line_score(board, ttt_possible_lines[5]);
-		s += _line_score(board, ttt_possible_lines[6]);
-		s += _line_score(board, ttt_possible_lines[7]);
-
-		return s;
+		return _line_score(board, ttt_possible_lines[0])
+		     + _line_score(board, ttt_possible_lines[1])
+         + _line_score(board, ttt_possible_lines[2])
+         + _line_score(board, ttt_possible_lines[3])
+         + _line_score(board, ttt_possible_lines[4])
+         + _line_score(board, ttt_possible_lines[5])
+         + _line_score(board, ttt_possible_lines[6])
+         + _line_score(board, ttt_possible_lines[7])
+    ;
 	}
 
 	inline float _line_score(const std::array<ttt_t, 9>& board, const std::tuple<int, int, int> line) const {
