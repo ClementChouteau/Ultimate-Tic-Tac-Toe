@@ -10,7 +10,8 @@
 
 using hash_t = std::uint32_t;
 
-std::mt19937 rd;
+std::random_device dev;
+std::mt19937 rd(dev());
 std::uniform_int_distribution<hash_t> dist;
 
 /** This is a class to generate automatically a high quality hash function.
