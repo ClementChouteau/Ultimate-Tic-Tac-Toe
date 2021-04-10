@@ -127,7 +127,7 @@ def turn(players, player, board, possible_moves, round_number):
 		lines.append(f'update game round {round_number}')
 		lines.append(f"update game field {str(board)}")
 		lines.append(f"update game macroboard {','.join(possible_moves)}")
-		lines.append(f"action move {player['timebank']}")
+		lines.append(f"action move {int(player['timebank'])}")
 
 		time_before = datetime.datetime.now()
 		player['program'].writeLines(lines)
