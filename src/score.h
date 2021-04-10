@@ -80,13 +80,13 @@ private:
     ;
 	}
 
-	inline float _line_score(const std::array<ttt_t, 9>& board, const std::tuple<int, int, int> line) const {
-		const float s00 = score(board[std::get<0>(line)], Owner::Player0);
-		const float s01 = score(board[std::get<0>(line)], Owner::Player1);
-		const float s10 = score(board[std::get<1>(line)], Owner::Player0);
-		const float s11 = score(board[std::get<1>(line)], Owner::Player1);
-		const float s20 = score(board[std::get<2>(line)], Owner::Player0);
-		const float s21 = score(board[std::get<2>(line)], Owner::Player1);
+	inline score_t _line_score(const std::array<ttt_t, 9>& board, const std::tuple<int, int, int> line) const {
+		const auto s00 = score(board[std::get<0>(line)], Owner::Player0);
+		const auto s01 = score(board[std::get<0>(line)], Owner::Player1);
+		const auto s10 = score(board[std::get<1>(line)], Owner::Player0);
+		const auto s11 = score(board[std::get<1>(line)], Owner::Player1);
+		const auto s20 = score(board[std::get<2>(line)], Owner::Player0);
+		const auto s21 = score(board[std::get<2>(line)], Owner::Player1);
 
 		return (s00 * s10 * s20) - (s01 * s11 * s21);
 	}
